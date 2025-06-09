@@ -5,9 +5,12 @@ import { FIREBASE_TOKEN_COOKIE } from '@/lib/utils';
 const publicRoutes = [
   '/auth/signin', 
   '/auth/error', 
+  '/api/auth/debug-token',
+  '/api/auth/verify-token',
+  '/api/auth/verify-credentials',
+  '/api/auth/check-api-config',
   '/firebase-debug',
-  '/firebase-check',
-  '/api/auth/verify-token' // We'll create this API route for token verification
+  '/firebase-check'
 ];
 
 export async function middleware(request: NextRequest) {
@@ -29,6 +32,7 @@ export async function middleware(request: NextRequest) {
   
   // If no token is found, redirect to sign-in page
   if (!token) {
+    console.log('No auth token found, redirecting to sign-in page');
     const signInUrl = new URL('/auth/signin', request.url);
     signInUrl.searchParams.set('callbackUrl', encodeURI(request.url));
     return NextResponse.redirect(signInUrl);

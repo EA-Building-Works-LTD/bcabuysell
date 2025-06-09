@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from './database';
 import User from '@/models/User';
 import { FIREBASE_TOKEN_COOKIE } from './utils';
+import { verifyIdToken } from './firebase-admin';
 
 /**
  * Get the authenticated user from the request
- * This is a simplified implementation that needs Firebase Admin SDK in production
  */
 export async function getAuthUser(request: NextRequest) {
   try {
@@ -24,6 +24,21 @@ export async function getAuthUser(request: NextRequest) {
       console.log('No token found in cookies or Authorization header');
       return null;
     }
+
+    // Verify the token with Firebase Admin SDK
+    const decodedToken = await verifyIdToken(token);
+    
+    if (!decodedToken) {
+      console.log('Invalid token');
+      return null;
+    }
+    
+    const uid = decodedToken.uid;
+    
+    if (!uid) {
+      console.log('No UID in decoded token');
+      return null;
+    }
     
     // Connect to the database
     try {
@@ -36,77 +51,50 @@ export async function getAuthUser(request: NextRequest) {
         console.log('Development mode: Using mock admin user');
         return {
           _id: 'mock-user-id',
-          uid: 'mock-firebase-uid',
-          email: 'mock@example.com',
-          displayName: 'Mock User',
+          uid: uid,
+          email: decodedToken.email || 'mock@example.com',
+          displayName: decodedToken.name || 'Mock User',
           role: 'admin'
         };
       }
       throw dbError;
     }
     
-    // In a real implementation, you would verify the token with Firebase Admin SDK
-    // For now, we'll use a simplified approach for testing
-    
-    // TEMPORARY SOLUTION - THIS WOULD BE REPLACED BY FIREBASE ADMIN SDK VERIFICATION
-    // In a real implementation, you would decode and verify the token with Firebase Admin SDK
-    let uid = '';
-    
-    try {
-      // This is a very simplified token parsing approach - DO NOT USE IN PRODUCTION
-      // This assumes the token has a simple structure for testing only
-      if (token.includes('.')) {
-        // Simple attempt to extract payload from JWT-like token
-        const base64Payload = token.split('.')[1];
-        const payload = JSON.parse(atob(base64Payload));
-        uid = payload.user_id || payload.uid || payload.sub;
-      } else {
-        // Fallback for testing - use the token directly as UID
-        // For testing only - remove in production
-        uid = token;
-      }
-    } catch (e) {
-      console.error('Error parsing token:', e);
-      // For testing, if token parsing fails, use it directly (ONLY FOR DEVELOPMENT)
-      uid = token;
-    }
-    
-    if (!uid) {
-      console.log('No UID extracted from token');
-      return null;
-    }
-    
     console.log('Looking up user with UID:', uid);
     
-    // Temporary for testing: Create a test user if it doesn't exist
+    // Find user in the database
     let user = await User.findOne({ uid });
     
-    if (!user && process.env.NODE_ENV === 'development') {
-      console.log('Creating test user for development');
-      // Create a test user for development only
+    // Create user if it doesn't exist (first login after registration)
+    if (!user) {
+      console.log('User not found in database, creating new user record');
       try {
         user = await User.create({
           uid,
-          email: 'test@example.com',
-          displayName: 'Test User',
-          role: 'admin', // Give admin role for testing
+          email: decodedToken.email,
+          displayName: decodedToken.name || decodedToken.email?.split('@')[0],
+          photoURL: decodedToken.picture,
+          // For first user or development, set as admin
+          role: (process.env.NODE_ENV === 'development' || 
+                (await User.countDocuments()) === 0) ? 'admin' : 'user',
         });
+        console.log('Created new user in database:', user._id);
       } catch (createError) {
-        console.error('Error creating test user:', createError);
-        // If creation fails but we're in development, still return a mock user
-        return {
-          _id: 'mock-user-id',
-          uid: uid,
-          email: 'test@example.com',
-          displayName: 'Test User',
-          role: 'admin'
-        };
+        console.error('Error creating user in database:', createError);
+        
+        // In development, return mock user
+        if (process.env.NODE_ENV === 'development') {
+          return {
+            _id: 'mock-user-id',
+            uid,
+            email: decodedToken.email || 'mock@example.com',
+            displayName: decodedToken.name || 'Mock User',
+            role: 'admin'
+          };
+        }
+        
+        throw createError;
       }
-    }
-    
-    if (!user) {
-      console.log('User not found in database');
-      return null;
     }
     
     return {
@@ -143,6 +131,7 @@ export function withAuth(handler: (req: NextRequest, user: any) => Promise<NextR
     const user = await getAuthUser(request);
     
     if (!user) {
+      console.log('Auth middleware: Unauthorized request');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -158,10 +147,12 @@ export function withAdminAuth(handler: (req: NextRequest, user: any) => Promise<
     const user = await getAuthUser(request);
     
     if (!user) {
+      console.log('Admin middleware: Unauthorized request');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     if (user.role !== 'admin') {
+      console.log('Admin middleware: Forbidden - user is not admin', user.email, user.role);
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
     

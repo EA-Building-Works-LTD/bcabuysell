@@ -19,29 +19,20 @@ interface ApiErrorResponse {
 }
 
 // GET /api/admin/users - Get all users (admin only)
-export const GET = withAdminAuth(async (_request: NextRequest, adminUser: AdminUser) => {
+export const GET = withAdminAuth(async (request: NextRequest, user: any) => {
   try {
-    // Connect to database
+    // Connect to the database
     await connectDB();
     
     // Get all users
-    const users = await User.find().select('-__v').sort({ createdAt: -1 });
+    const users = await User.find({}).sort({ createdAt: -1 });
     
-    // Format user data to avoid exposing sensitive information
-    const formattedUsers = users.map(user => ({
-      id: user._id.toString(),
-      name: user.name || user.displayName,
-      email: user.email,
-      image: user.image || user.photoURL,
-      role: user.role,
-      createdAt: user.createdAt,
-    }));
-    
-    return NextResponse.json({ users: formattedUsers });
-  } catch (error: unknown) {
+    return NextResponse.json({ users });
+  } catch (error: any) {
     console.error('Error fetching users:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch users';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json({ 
+      error: error.message || 'Failed to fetch users'
+    }, { status: 500 });
   }
 });
 

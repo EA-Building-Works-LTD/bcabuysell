@@ -1,128 +1,148 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { auth, db, googleProvider } from '@/lib/firebase';
-import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { getFirebaseToken } from '@/lib/utils';
 
 export default function FirebaseDebugPage() {
-  const [envVars, setEnvVars] = useState<Record<string, string | undefined>>({});
-  const [firebaseStatus, setFirebaseStatus] = useState<Record<string, boolean>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, userData, loading, error, signInWithGoogle } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
+  const [debugResponse, setDebugResponse] = useState<any>(null);
+  const [isChecking, setIsChecking] = useState(false);
 
   useEffect(() => {
-    // Check Firebase initialization
-    setFirebaseStatus({
-      auth: !!auth,
-      db: !!db,
-      googleProvider: !!googleProvider,
-    });
-
-    // Check environment variables (only show presence, not actual values for security)
-    const envVarNames = [
-      'NEXT_PUBLIC_FIREBASE_API_KEY',
-      'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
-      'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-      'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-      'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
-      'NEXT_PUBLIC_FIREBASE_APP_ID',
-    ];
-
-    const envVarStatus: Record<string, string | undefined> = {};
-    
-    // We can only check if they're defined in the browser, not their actual values
-    // since Next.js only includes env vars used in the code
-    envVarNames.forEach(name => {
-      const value = process.env[name as keyof typeof process.env];
-      envVarStatus[name] = value 
-        ? `Present (${value.substring(0, 3)}...)` 
-        : 'Missing';
-    });
-
-    setEnvVars(envVarStatus);
-    setIsLoading(false);
+    // Get token from cookies/localStorage when component mounts
+    const storedToken = getFirebaseToken();
+    setToken(storedToken);
   }, []);
 
+  const checkToken = async () => {
+    if (!token) {
+      alert('No token found. Please sign in first.');
+      return;
+    }
+
+    setIsChecking(true);
+    try {
+      // Call our debug API to check the token
+      const response = await fetch('/api/auth/debug-token', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await response.json();
+      setDebugResponse(data);
+    } catch (error) {
+      console.error('Error checking token:', error);
+      setDebugResponse({ error: 'Failed to check token: ' + (error as Error).message });
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">Firebase Configuration Debug</h1>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Firebase Authentication Debug</h1>
       
-      {isLoading ? (
-        <p>Loading configuration details...</p>
-      ) : (
-        <div className="space-y-8">
+      {/* Authentication Status */}
+      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-4">
+        <h2 className="text-xl font-semibold mb-2">Authentication Status</h2>
+        {loading ? (
+          <p>Loading authentication state...</p>
+        ) : (
           <div>
-            <h2 className="text-xl font-semibold mb-2">Firebase Initialization Status</h2>
-            <div className="bg-gray-100 p-4 rounded-md">
-              <ul className="space-y-2">
-                {Object.entries(firebaseStatus).map(([key, initialized]) => (
-                  <li key={key} className="flex items-center">
-                    <span className={`w-3 h-3 rounded-full mr-2 ${initialized ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                    <span className="font-medium">{key}:</span>
-                    <span className={`ml-2 ${initialized ? 'text-green-600' : 'text-red-600'}`}>
-                      {initialized ? 'Initialized' : 'Not Initialized'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <p><strong>Signed in:</strong> {user ? 'Yes' : 'No'}</p>
+            {user && (
+              <>
+                <p><strong>User ID:</strong> {user.uid}</p>
+                <p><strong>Email:</strong> {user.email}</p>
+                <p><strong>Name:</strong> {user.displayName || 'Not available'}</p>
+              </>
+            )}
+            {userData && (
+              <>
+                <p><strong>Database ID:</strong> {userData._id}</p>
+                <p><strong>Role:</strong> {userData.role}</p>
+              </>
+            )}
+            {error && (
+              <div className="mt-2 p-2 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded">
+                <p><strong>Error:</strong> {error}</p>
+              </div>
+            )}
           </div>
+        )}
+        
+        {!user && (
+          <button 
+            onClick={signInWithGoogle}
+            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Sign in with Google
+          </button>
+        )}
+      </div>
 
+      {/* Token Information */}
+      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-4">
+        <h2 className="text-xl font-semibold mb-2">Firebase Token</h2>
+        {token ? (
           <div>
-            <h2 className="text-xl font-semibold mb-2">Environment Variables</h2>
-            <div className="bg-gray-100 p-4 rounded-md">
-              <ul className="space-y-2">
-                {Object.entries(envVars).map(([key, value]) => (
-                  <li key={key} className="flex items-center">
-                    <span className={`w-3 h-3 rounded-full mr-2 ${value && !value.includes('Missing') ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                    <span className="font-medium">{key}:</span>
-                    <span className={`ml-2 ${value && !value.includes('Missing') ? 'text-green-600' : 'text-red-600'}`}>
-                      {value || 'Missing'}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+            <p className="mb-2"><strong>Token exists:</strong> Yes</p>
+            <div className="overflow-auto max-h-20 mb-2 p-2 bg-gray-200 dark:bg-gray-700 rounded text-xs">
+              {token.length > 100 ? token.substring(0, 100) + '...' : token}
             </div>
+            <button 
+              onClick={checkToken}
+              disabled={isChecking}
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+            >
+              {isChecking ? 'Checking...' : 'Verify Token'}
+            </button>
           </div>
+        ) : (
+          <p>No token found in cookies or localStorage</p>
+        )}
+      </div>
 
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Troubleshooting Steps</h2>
-            <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
-              <ol className="list-decimal list-inside space-y-3">
-                <li>
-                  <span className="font-medium">Create a .env.local file</span>
-                  <p className="text-sm ml-6 mt-1">
-                    Run <code className="bg-gray-200 px-1 rounded">npm run setup-env</code> to create your environment variables.
-                  </p>
-                </li>
-                <li>
-                  <span className="font-medium">Restart the development server</span>
-                  <p className="text-sm ml-6 mt-1">
-                    After creating or updating the .env.local file, stop and restart the Next.js server.
-                  </p>
-                </li>
-                <li>
-                  <span className="font-medium">Verify your environment variables</span>
-                  <p className="text-sm ml-6 mt-1">
-                    Run <code className="bg-gray-200 px-1 rounded">npm run check-env</code> to verify your Firebase configuration.
-                  </p>
-                </li>
-                <li>
-                  <span className="font-medium">Test Firebase connectivity</span>
-                  <p className="text-sm ml-6 mt-1">
-                    Run <code className="bg-gray-200 px-1 rounded">npm run test-firebase</code> to test the connection.
-                  </p>
-                </li>
-              </ol>
-            </div>
-          </div>
-          
-          <div className="flex justify-center mt-6">
-            <Link href="/" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-              Return to Home
-            </Link>
-          </div>
+      {/* Debug Response */}
+      {debugResponse && (
+        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+          <h2 className="text-xl font-semibold mb-2">Token Verification Result</h2>
+          <pre className="overflow-auto max-h-80 p-2 bg-gray-200 dark:bg-gray-700 rounded text-xs">
+            {JSON.stringify(debugResponse, null, 2)}
+          </pre>
         </div>
       )}
+
+      {/* API Testing */}
+      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mt-4">
+        <h2 className="text-xl font-semibold mb-2">API Connection Test</h2>
+        <button 
+          onClick={async () => {
+            try {
+              const response = await fetch('/api/cars?status=purchased');
+              const data = await response.json();
+              setDebugResponse({
+                apiTest: {
+                  status: response.status,
+                  statusText: response.statusText,
+                  data: data
+                }
+              });
+            } catch (error) {
+              setDebugResponse({
+                apiTest: {
+                  error: (error as Error).message
+                }
+              });
+            }
+          }}
+          className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
+        >
+          Test Cars API
+        </button>
+      </div>
     </div>
   );
 } 

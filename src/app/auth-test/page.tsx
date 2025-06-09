@@ -1,111 +1,89 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { fetchJson } from '@/lib/fetch-utils';
+import Link from 'next/link';
 
 export default function AuthTestPage() {
-  const { user, loading, error, signInWithGoogle, signOut } = useAuth();
-  const [apiResult, setApiResult] = useState<any>(null);
-  const [testError, setTestError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Function to test API authentication
-  const testApiAuth = async () => {
-    setIsLoading(true);
-    setTestError(null);
-    
+  const { user, userData, loading, error, signInWithGoogle } = useAuth();
+  const [apiTest, setApiTest] = useState<any>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  
+  const testAPI = async () => {
     try {
-      // Call our debug endpoint
-      const result = await fetchJson('/api/auth/debug');
-      setApiResult(result);
-    } catch (err: any) {
-      console.error('API test error:', err);
-      setTestError(err.message || 'Failed to test API authentication');
-    } finally {
-      setIsLoading(false);
+      setApiError(null);
+      const response = await fetch('/api/auth/debug-token');
+      const data = await response.json();
+      setApiTest(data);
+    } catch (error) {
+      console.error('API test error:', error);
+      setApiError((error as Error).message);
     }
   };
-
+  
   return (
-    <div className="container py-10">
-      <h1 className="text-3xl font-bold mb-6">Authentication Test Page</h1>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Authentication Test</h1>
       
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Authentication Status */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Authentication Status</h2>
-          
-          {loading ? (
-            <p>Loading authentication...</p>
-          ) : error ? (
-            <div className="p-4 bg-red-50 text-red-700 rounded-md">
-              <p className="font-medium">Error: {error}</p>
-            </div>
-          ) : user ? (
-            <div className="space-y-3">
-              <div className="p-4 bg-green-50 text-green-700 rounded-md">
-                <p className="font-medium">Authenticated ✓</p>
-              </div>
-              
-              <div className="space-y-2">
-                <p><span className="font-medium">User ID:</span> {user.uid}</p>
-                <p><span className="font-medium">Email:</span> {user.email}</p>
-                <p><span className="font-medium">Name:</span> {user.displayName || 'Not set'}</p>
-              </div>
-              
-              <Button onClick={signOut} variant="outline">Sign Out</Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="p-4 bg-amber-50 text-amber-700 rounded-md">
-                <p className="font-medium">Not authenticated</p>
-              </div>
-              
-              <Button onClick={signInWithGoogle}>Sign In with Google</Button>
-            </div>
-          )}
-        </Card>
-        
-        {/* API Authentication Test */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">API Authentication Test</h2>
-          
-          <div className="space-y-4">
-            <Button 
-              onClick={testApiAuth} 
-              disabled={isLoading || !user}
-              className="w-full"
-            >
-              {isLoading ? 'Testing...' : 'Test API Authentication'}
-            </Button>
-            
-            {testError && (
-              <div className="p-4 bg-red-50 text-red-700 rounded-md">
-                <p className="font-medium">Error: {testError}</p>
-              </div>
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
+        <h2 className="text-lg font-semibold mb-2">Auth Status</h2>
+        {loading ? (
+          <p>Loading...</p>
+        ) : user ? (
+          <div>
+            <p className="text-green-600 font-medium">✓ Authenticated</p>
+            <p>User ID: {user.uid}</p>
+            <p>Email: {user.email}</p>
+            {userData && (
+              <>
+                <p>Role: {userData.role}</p>
+              </>
             )}
-            
-            {apiResult && (
-              <div className="space-y-3">
-                <div className={`p-4 rounded-md ${apiResult.authenticated ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                  <p className="font-medium">
-                    API Authentication: {apiResult.authenticated ? 'Successful ✓' : 'Failed ✗'}
-                  </p>
-                </div>
-                
-                <div className="border rounded-md overflow-hidden">
-                  <div className="bg-gray-100 p-3 font-medium">Response Details:</div>
-                  <pre className="p-3 text-sm overflow-auto max-h-60">
-                    {JSON.stringify(apiResult, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            )}
+            {error && <p className="text-red-500">{error}</p>}
           </div>
-        </Card>
+        ) : (
+          <div>
+            <p className="text-red-600 font-medium">✗ Not authenticated</p>
+            {error && <p className="text-red-500">{error}</p>}
+            <button 
+              onClick={signInWithGoogle}
+              className="mt-2 px-4 py-2 bg-blue-500 text-white rounded"
+            >
+              Sign in with Google
+            </button>
+          </div>
+        )}
+      </div>
+      
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-4">
+        <h2 className="text-lg font-semibold mb-2">API Test</h2>
+        <button 
+          onClick={testAPI}
+          className="px-4 py-2 bg-green-500 text-white rounded"
+        >
+          Test API
+        </button>
+        
+        {apiTest && (
+          <div className="mt-4">
+            <h3 className="font-medium">Response:</h3>
+            <pre className="bg-gray-100 dark:bg-gray-900 p-2 rounded mt-2 text-xs overflow-auto">
+              {JSON.stringify(apiTest, null, 2)}
+            </pre>
+          </div>
+        )}
+        
+        {apiError && (
+          <div className="mt-4 text-red-500">
+            <p>Error: {apiError}</p>
+          </div>
+        )}
+      </div>
+      
+      <div className="text-center mt-4">
+        <Link href="/" className="text-blue-500 underline">
+          Back to Home
+        </Link>
       </div>
     </div>
   );

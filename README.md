@@ -1,15 +1,106 @@
-# BCA Buy Sell - Car Market Application
+# BCA Buy Sell Platform
 
-A comprehensive application for tracking car purchases, sales, and profits with Google authentication.
+A car marketplace application built with Next.js, Firebase, and MongoDB.
+
+## Deployment Guide for Vercel
+
+### Prerequisites
+
+1. A Firebase project with:
+   - Authentication enabled (Google sign-in method)
+   - Firestore database created
+   - Firebase Admin SDK service account key
+
+2. A MongoDB database (MongoDB Atlas recommended)
+
+3. A Vercel account connected to your GitHub repository
+
+### Environment Variables Setup
+
+Your app requires several environment variables to function correctly. For detailed help, visit `/vercel-config` in your deployed app.
+
+#### Firebase Client Configuration
+
+These variables are used for client-side authentication:
+
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
+```
+
+#### Firebase Admin SDK Configuration
+
+These variables are used for server-side token verification:
+
+```
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxx@your-project-id.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour Private Key Here\n-----END PRIVATE KEY-----\n"
+```
+
+**Important**: The `FIREBASE_PRIVATE_KEY` must:
+- Be enclosed in double quotes
+- Have line breaks represented as `\n`
+- Include the `-----BEGIN PRIVATE KEY-----` and `-----END PRIVATE KEY-----` parts
+
+#### MongoDB Configuration
+
+```
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/database?retryWrites=true&w=majority
+```
+
+### Setting Up in Vercel
+
+1. Go to your project in the [Vercel Dashboard](https://vercel.com/dashboard)
+2. Click on the "Settings" tab
+3. Navigate to the "Environment Variables" section
+4. Add each variable with its corresponding value
+5. Make sure to select all environments (Production, Preview, Development)
+6. Click "Save" to apply the changes
+7. Redeploy your application for the changes to take effect
+
+### Troubleshooting Authentication Issues
+
+If you're experiencing authentication issues after deployment:
+
+1. Visit `/firebase-debug` in your deployed app to diagnose authentication status
+2. Check that your Firebase project has Google Authentication enabled
+3. Make sure your Firebase project allows your Vercel domain in the Authentication → Sign-in method → Authorized domains section
+4. Verify all environment variables are correctly set in Vercel
+5. Check that the Firebase Admin SDK private key is properly formatted with `\n` for line breaks
+
+### Local Development
+
+1. Clone the repository
+2. Create a `.env.local` file with all the environment variables listed above
+3. Install dependencies: `npm install`
+4. Run the development server: `npm run dev`
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+### Building for Production
+
+```bash
+npm run build
+```
+
+### Additional Resources
+
+- Visit `/vercel-config` in your deployed app for more detailed instructions
+- Firebase Documentation: [https://firebase.google.com/docs](https://firebase.google.com/docs)
+- Next.js Documentation: [https://nextjs.org/docs](https://nextjs.org/docs)
+- Vercel Documentation: [https://vercel.com/docs](https://vercel.com/docs)
 
 ## Features
 
-- **User Authentication**: Secure Google Sign-In with role-based access control
-- **Car Inventory Management**: Track purchased, listed, and sold cars
-- **Image Upload**: Add images for car listings
-- **Dashboard & Statistics**: Visual analytics of sales performance
-- **Admin Controls**: User management for admins
-- **Responsive Design**: Works on desktop and mobile devices
+- User authentication with Firebase
+- Car listing and management
+- Admin dashboard for user management
+- Responsive design for all devices
+- Real-time data updates with Firestore
+- Secure API routes with Firebase token verification
 
 ## Getting Started
 
