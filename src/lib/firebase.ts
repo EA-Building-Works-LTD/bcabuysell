@@ -16,27 +16,32 @@ import {
   persistentMultipleTabManager
 } from 'firebase/firestore';
 
-// Debug environment variables - more detailed logging
-console.log('Firebase environment variables detailed check:');
-console.log('NEXT_PUBLIC_FIREBASE_API_KEY:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'Present, length: ' + process.env.NEXT_PUBLIC_FIREBASE_API_KEY.length : 'Missing');
-console.log('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:', process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'Present, length: ' + process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN.length : 'Missing');
-console.log('NEXT_PUBLIC_FIREBASE_PROJECT_ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'Present, length: ' + process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID.length : 'Missing');
-console.log('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:', process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ? 'Present, length: ' + process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET.length : 'Missing');
-console.log('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:', process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ? 'Present, length: ' + process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID.length : 'Missing');
-console.log('NEXT_PUBLIC_FIREBASE_APP_ID:', process.env.NEXT_PUBLIC_FIREBASE_APP_ID ? 'Present, length: ' + process.env.NEXT_PUBLIC_FIREBASE_APP_ID.length : 'Missing');
+// Only log in development
+const isDev = process.env.NODE_ENV === 'development';
+
+if (isDev) {
+  // Debug environment variables - more detailed logging
+  console.log('Firebase environment variables detailed check:');
+  console.log('NEXT_PUBLIC_FIREBASE_API_KEY:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'Present' : 'Missing');
+  console.log('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:', process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'Present' : 'Missing');
+  console.log('NEXT_PUBLIC_FIREBASE_PROJECT_ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'Present' : 'Missing');
+  console.log('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:', process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ? 'Present' : 'Missing');
+  console.log('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:', process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ? 'Present' : 'Missing');
+  console.log('NEXT_PUBLIC_FIREBASE_APP_ID:', process.env.NEXT_PUBLIC_FIREBASE_APP_ID ? 'Present' : 'Missing');
+}
 
 // Check for common mistakes in environment variables
 const checkEnvValue = (value: string | undefined): boolean => {
   if (!value) {
-    console.error("Error: Environment variable is undefined or empty");
+    if (isDev) console.error("Error: Environment variable is undefined or empty");
     return false;
   }
   if (value.includes('"') || value.includes("'")) {
-    console.error(`Error: Environment variable contains quotes (${value}). Remove quotes from .env.local`);
+    if (isDev) console.error(`Error: Environment variable contains quotes. Remove quotes from .env.local`);
     return false;
   }
   if (value.startsWith(' ') || value.endsWith(' ')) {
-    console.error(`Error: Environment variable has leading/trailing spaces (${value}). Remove spaces from .env.local`);
+    if (isDev) console.error(`Error: Environment variable has leading/trailing spaces. Remove spaces from .env.local`);
     return false;
   }
   return true;
@@ -72,12 +77,14 @@ const hasValidEnvVars =
   checkEnvValue(process.env.NEXT_PUBLIC_FIREBASE_APP_ID);
 
 // Use environment variables if available, otherwise use fallback (development only)
-const configToUse = hasValidEnvVars ? firebaseConfig : fallbackConfig;
+const configToUse = hasValidEnvVars ? firebaseConfig : (isDev ? fallbackConfig : firebaseConfig);
 
-console.log('Using Firebase config with project ID:', configToUse.projectId);
-if (!hasValidEnvVars) {
-  console.warn('WARNING: Using fallback Firebase configuration. This should only be used in development.');
-  console.warn('Please set up your environment variables properly for production deployment.');
+if (isDev) {
+  console.log('Using Firebase config with project ID:', configToUse.projectId);
+  if (!hasValidEnvVars) {
+    console.warn('WARNING: Using fallback Firebase configuration. This should only be used in development.');
+    console.warn('Please set up your environment variables properly for production deployment.');
+  }
 }
 
 // Initialize Firebase conditionally
@@ -88,13 +95,25 @@ let googleProvider: GoogleAuthProvider | undefined;
 
 // Function to initialize Firestore with enhanced offline support
 const initializeFirestoreWithOfflineSupport = (app: FirebaseApp) => {
-  console.log('Initializing Firestore with enhanced offline support...');
-  return initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentMultipleTabManager(),
-      cacheSizeBytes: CACHE_SIZE_UNLIMITED
-    }),
-  });
+  if (isDev) console.log('Initializing Firestore with enhanced offline support...');
+  try {
+    // For browser environments, use enhanced offline capabilities
+    if (typeof window !== 'undefined') {
+      return initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+          cacheSizeBytes: CACHE_SIZE_UNLIMITED
+        }),
+      });
+    } else {
+      // For server environment, use standard Firestore
+      return getFirestore(app);
+    }
+  } catch (error) {
+    console.error('Error initializing Firestore with offline support:', error);
+    // Fallback to standard initialization
+    return getFirestore(app);
+  }
 };
 
 // Function to retry initialization with exponential backoff
@@ -106,25 +125,22 @@ const initializeWithRetry = async (maxRetries = 3, initialDelay = 1000) => {
     try {
       // Initialize or get existing Firebase app
       if (getApps().length === 0) {
-        console.log('Initializing new Firebase app...');
+        if (isDev) console.log('Initializing new Firebase app...');
         app = initializeApp(configToUse);
       } else {
         app = getApps()[0];
-        console.log('Using existing Firebase app');
+        if (isDev) console.log('Using existing Firebase app');
       }
 
       // Initialize authentication
       auth = getAuth(app);
       googleProvider = new GoogleAuthProvider();
       googleProvider.setCustomParameters({ prompt: 'select_account' });
-      console.log('Firebase Auth initialized successfully');
+      if (isDev) console.log('Firebase Auth initialized successfully');
 
       // Initialize Firestore with enhanced offline support
       firestore = initializeFirestoreWithOfflineSupport(app);
-      console.log('Firestore initialized successfully');
-      
-      // Enable offline persistence is now handled by the initializeFirestore options
-      console.log('Offline persistence enabled through Firestore initialization');
+      if (isDev) console.log('Firestore initialized successfully');
       
       return true;
     } catch (error) {
@@ -136,7 +152,7 @@ const initializeWithRetry = async (maxRetries = 3, initialDelay = 1000) => {
         return false;
       }
       
-      console.log(`Retrying in ${delay}ms...`);
+      if (isDev) console.log(`Retrying in ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
       delay *= 2; // Exponential backoff
     }
@@ -184,6 +200,14 @@ try {
 export const isOnline = () => {
   return typeof navigator !== 'undefined' && navigator.onLine;
 };
+
+// Log initialization status for debugging
+if (isDev) {
+  console.log('AuthContext - Firebase initialization status:');
+  console.log('- auth:', auth ? 'Initialized' : 'Not initialized');
+  console.log('- db:', firestore ? 'Initialized' : 'Not initialized');
+  console.log('- googleProvider:', googleProvider ? 'Initialized' : 'Not initialized');
+}
 
 // Export the Firebase services
 export { app, auth, firestore as db, googleProvider }; 

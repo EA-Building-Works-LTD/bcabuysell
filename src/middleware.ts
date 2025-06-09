@@ -9,21 +9,35 @@ const publicRoutes = [
   '/api/auth/verify-token',
   '/api/auth/verify-credentials',
   '/api/auth/check-api-config',
+  '/api/cars/emergency',
+  '/api/auth/token-fix',
   '/firebase-debug',
   '/firebase-check'
+];
+
+// Array of emergency API routes that should always work even with auth issues
+const emergencyRoutes = [
+  '/api/cars/emergency',
+  '/api/auth/token-fix',
 ];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip middleware for public routes, static assets, and API routes
-  // API routes handle their own authentication
+  // Skip middleware for public routes, static assets, and emergency endpoints
   if (
     publicRoutes.some(route => pathname === route || pathname.startsWith(route)) ||
     pathname.startsWith('/_next') || 
-    pathname.includes('.') || 
-    pathname.startsWith('/api/')
+    pathname.includes('.') ||
+    emergencyRoutes.some(route => pathname === route)
   ) {
+    return NextResponse.next();
+  }
+  
+  // Handle API routes (except emergency ones)
+  if (pathname.startsWith('/api/')) {
+    // For API routes, we'll still let them through but we'll check
+    // for the token so that the API route itself can handle auth
     return NextResponse.next();
   }
   

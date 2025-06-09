@@ -25,11 +25,16 @@ export async function getAuthUser(request: NextRequest) {
       return null;
     }
 
+    // Log token for debugging in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Token found:', token.substring(0, 20) + '...');
+    }
+
     // Verify the token with Firebase Admin SDK
     const decodedToken = await verifyIdToken(token);
     
     if (!decodedToken) {
-      console.log('Invalid token');
+      console.log('Invalid token (verification failed)');
       return null;
     }
     
@@ -107,6 +112,14 @@ export async function getAuthUser(request: NextRequest) {
   } catch (error) {
     console.error('Error getting authenticated user:', error);
     
+    // Log request details for debugging
+    console.error('Request details:', {
+      url: request.url,
+      method: request.method,
+      hasCookies: !!request.cookies.get(FIREBASE_TOKEN_COOKIE),
+      hasAuthHeader: !!request.headers.get('Authorization')
+    });
+    
     // For development only - return a mock admin user when errors occur
     if (process.env.NODE_ENV === 'development') {
       console.log('Development mode: Returning mock admin user after error');
@@ -128,14 +141,36 @@ export async function getAuthUser(request: NextRequest) {
  */
 export function withAuth(handler: (req: NextRequest, user: any) => Promise<NextResponse>) {
   return async (request: NextRequest) => {
-    const user = await getAuthUser(request);
-    
-    if (!user) {
-      console.log('Auth middleware: Unauthorized request');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+      const user = await getAuthUser(request);
+      
+      if (!user) {
+        console.log('Auth middleware: Unauthorized request');
+        // Add response headers for debugging
+        const headers = new Headers();
+        headers.set('X-Auth-Error', 'No authenticated user found');
+        headers.set('X-Auth-Debug', 'Token verification failed or not provided');
+        
+        return NextResponse.json({ 
+          error: 'Unauthorized',
+          message: 'Authentication required. Please sign in.'
+        }, { 
+          status: 401,
+          headers
+        });
+      }
+      
+      return handler(request, user);
+    } catch (error) {
+      console.error('Error in auth middleware:', error);
+      
+      return NextResponse.json({ 
+        error: 'Authentication error',
+        message: 'An error occurred during authentication. Please try again.'
+      }, { 
+        status: 500 
+      });
     }
-    
-    return handler(request, user);
   };
 }
 
@@ -144,18 +179,39 @@ export function withAuth(handler: (req: NextRequest, user: any) => Promise<NextR
  */
 export function withAdminAuth(handler: (req: NextRequest, user: any) => Promise<NextResponse>) {
   return async (request: NextRequest) => {
-    const user = await getAuthUser(request);
-    
-    if (!user) {
-      console.log('Admin middleware: Unauthorized request');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    try {
+      const user = await getAuthUser(request);
+      
+      if (!user) {
+        console.log('Admin middleware: Unauthorized request');
+        return NextResponse.json({ 
+          error: 'Unauthorized',
+          message: 'Authentication required. Please sign in.'
+        }, { 
+          status: 401 
+        });
+      }
+      
+      if (user.role !== 'admin') {
+        console.log('Admin middleware: Forbidden - user is not admin', user.email, user.role);
+        return NextResponse.json({ 
+          error: 'Admin access required',
+          message: 'You do not have permission to access this resource.'
+        }, { 
+          status: 403 
+        });
+      }
+      
+      return handler(request, user);
+    } catch (error) {
+      console.error('Error in admin auth middleware:', error);
+      
+      return NextResponse.json({ 
+        error: 'Authentication error',
+        message: 'An error occurred during authentication. Please try again.'
+      }, { 
+        status: 500 
+      });
     }
-    
-    if (user.role !== 'admin') {
-      console.log('Admin middleware: Forbidden - user is not admin', user.email, user.role);
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
-    }
-    
-    return handler(request, user);
   };
 } 

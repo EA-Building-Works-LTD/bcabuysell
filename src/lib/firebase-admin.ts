@@ -61,6 +61,45 @@ function initFirebaseAdmin() {
 // Get the Firebase Admin auth instance
 export const adminAuth = initFirebaseAdmin();
 
+// Check if Firebase Admin SDK is initialized
+export function isAdminInitialized(): boolean {
+  return adminAuth !== null;
+}
+
+// Get Firebase Admin configuration status
+export function getAdminConfigStatus(): { 
+  hasProjectId: boolean; 
+  hasClientEmail: boolean; 
+  hasPrivateKey: boolean;
+  isInitialized: boolean;
+} {
+  return {
+    hasProjectId: !!process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    hasClientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+    hasPrivateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+    isInitialized: isAdminInitialized(),
+  };
+}
+
+// Function to manually reinitialize Firebase Admin
+// Useful for handling configuration changes at runtime
+export function reinitializeFirebaseAdmin() {
+  try {
+    console.log('Attempting to reinitialize Firebase Admin...');
+    const newAdminAuth = initFirebaseAdmin();
+    if (newAdminAuth) {
+      console.log('Firebase Admin reinitialized successfully');
+      return true;
+    } else {
+      console.error('Failed to reinitialize Firebase Admin');
+      return false;
+    }
+  } catch (error) {
+    console.error('Error reinitializing Firebase Admin:', error);
+    return false;
+  }
+}
+
 // Verify Firebase ID token
 export async function verifyIdToken(token: string): Promise<DecodedToken | null> {
   if (!adminAuth) {

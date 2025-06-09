@@ -39,6 +39,15 @@ export const GET = withAuth(async (request: NextRequest, user: any) => {
     return NextResponse.json({ data: cars });
   } catch (error: any) {
     console.error('Error fetching cars:', error);
+    
+    // Log additional context for debugging
+    console.error('Request URL:', request.url);
+    console.error('User context:', {
+      id: user?._id,
+      email: user?.email,
+      role: user?.role
+    });
+    
     return NextResponse.json({ 
       error: error.message || 'Failed to fetch cars',
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
@@ -67,6 +76,15 @@ export const POST = withAuth(async (request: NextRequest, user: any) => {
     return NextResponse.json({ message: 'Car created successfully', car: newCar }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating car:', error);
+    
+    // Log additional context for debugging
+    console.error('Request URL:', request.url);
+    console.error('User context:', {
+      id: user?._id,
+      email: user?.email,
+      role: user?.role
+    });
+    
     return NextResponse.json({ 
       error: error.message || 'Failed to create car',
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 

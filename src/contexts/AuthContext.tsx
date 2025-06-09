@@ -141,18 +141,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Get Firebase auth token and update cookie
   const getAuthToken = async () => {
-    // Check if we already have a token in the cookie
-    const existingToken = getFirebaseToken();
-    if (existingToken) return existingToken;
-    
-    // Otherwise get a new token from Firebase
+    // If no user is signed in, return null
     if (!user) return null;
+    
     try {
-      const token = await getIdToken(user);
+      // Always force refresh the token to ensure it's not expired
+      const token = await getIdToken(user, true);
+      
+      // Store the token in both cookie and localStorage
       setFirebaseToken(token);
+      
+      // For debugging in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Auth token refreshed and stored');
+      }
+      
       return token;
     } catch (error) {
-      console.error('Error getting auth token:', error);
+      console.error('Error getting fresh auth token:', error);
+      
+      // Try to get existing token as fallback
+      const existingToken = getFirebaseToken();
+      if (existingToken) {
+        console.log('Using existing token from storage');
+        return existingToken;
+      }
+      
       return null;
     }
   };
@@ -175,8 +189,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (user) {
           // Get and store Firebase token in cookie
           try {
-            const token = await getIdToken(user);
+            // Always force refresh the token on auth state change
+            const token = await getIdToken(user, true);
             setFirebaseToken(token);
+            
+            // Set up a token refresh interval
+            const tokenRefreshInterval = setInterval(async () => {
+              try {
+                if (auth?.currentUser) {
+                  const freshToken = await getIdToken(auth.currentUser, true);
+                  setFirebaseToken(freshToken);
+                  if (process.env.NODE_ENV === 'development') {
+                    console.log('Auth token refreshed via interval');
+                  }
+                }
+              } catch (refreshError) {
+                console.error('Token refresh interval error:', refreshError);
+              }
+            }, 15 * 60 * 1000); // Refresh token every 15 minutes
+            
+            // Clean up interval on unmount or user change
+            return () => clearInterval(tokenRefreshInterval);
           } catch (tokenError) {
             console.error('Error getting auth token:', tokenError);
           }

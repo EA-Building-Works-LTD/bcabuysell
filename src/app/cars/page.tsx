@@ -1,4 +1,4 @@
-import CarList from '@/components/cars/CarList';
+import CarListWrapper from '@/components/cars/CarListWrapper';
 
 export const metadata = {
   title: 'Cars - BCA Buy Sell',
@@ -8,7 +8,7 @@ export const metadata = {
 export default function CarsPage() {
   return (
     <div className="pb-2">
-      <CarList />
+      <CarListWrapper />
     </div>
   );
 } 

@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchJson, authFetch } from '@/lib/fetch-utils';
 
 export default function CarList() {
-  const { user } = useAuth();
+  const { user, getAuthToken } = useAuth();
   const [cars, setCars] = useState<ICar[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,19 +30,95 @@ export default function CarList() {
       setError(null);
       
       try {
+        // Get a fresh auth token before making the request
+        await getAuthToken();
+        
         const status = filter !== 'all' ? filter : '';
-        const data = await fetchJson(`/api/cars${status ? `?status=${status}` : ''}`);
+        const apiUrl = `/api/cars${status ? `?status=${status}` : ''}`;
+        
+        // Use authFetch with proper retry and token refresh
+        const response = await authFetch(apiUrl);
+        
+        // Check for errors
+        if (!response.ok) {
+          let errorMessage = `Error ${response.status}: ${response.statusText}`;
+          
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            // If response isn't JSON, use the status text
+          }
+          
+          throw new Error(errorMessage);
+        }
+        
+        const data = await response.json();
         setCars(data.data);
       } catch (err: any) {
-        setError(err.message || 'Error loading cars. Please try again later.');
         console.error('Error fetching cars:', err);
+        
+        // Try the emergency endpoint as fallback
+        try {
+          console.log('Main API failed, trying emergency endpoint...');
+          const status = filter !== 'all' ? filter : '';
+          const emergencyUrl = `/api/cars/emergency${status ? `?status=${status}` : ''}`;
+          
+          const emergencyResponse = await fetch(emergencyUrl);
+          
+          if (emergencyResponse.ok) {
+            const data = await emergencyResponse.json();
+            setCars(data.data);
+            setError('Using emergency mode: Authentication issue detected. Please visit /firebase-debug for diagnostics.');
+            console.log('Emergency endpoint succeeded');
+            return;
+          } else {
+            console.error('Emergency endpoint also failed:', emergencyResponse.status);
+          }
+        } catch (emergencyError) {
+          console.error('Emergency endpoint error:', emergencyError);
+        }
+        
+        // If the emergency endpoint also fails, show the original error
+        setError(err.message || 'Error loading cars. Please try again later.');
+        
+        // If error is authentication related, try to refresh token and retry once
+        if (err.message?.includes('Unauthorized') || err.message?.includes('401')) {
+          try {
+            console.log('Auth error detected, trying to refresh token and retry...');
+            
+            // Force a token refresh
+            const token = await getAuthToken();
+            
+            if (token) {
+              console.log('Token refreshed, retrying request...');
+              
+              const status = filter !== 'all' ? filter : '';
+              const apiUrl = `/api/cars${status ? `?status=${status}` : ''}`;
+              
+              const retryResponse = await authFetch(apiUrl);
+              
+              if (retryResponse.ok) {
+                const data = await retryResponse.json();
+                setCars(data.data);
+                // Clear the error since retry succeeded
+                setError(null);
+              } else {
+                throw new Error(`Retry failed: ${retryResponse.status}`);
+              }
+            }
+          } catch (retryErr: any) {
+            console.error('Retry failed:', retryErr);
+            setError('Authentication error. Please try signing out and back in.');
+          }
+        }
       } finally {
         setLoading(false);
       }
     };
     
     fetchCars();
-  }, [filter, user]);
+  }, [filter, user, getAuthToken]);
 
   const handleDeleteCar = async (id: string) => {
     try {

@@ -21,6 +21,13 @@ function getCookieDomain() {
     return '';
   }
   
+  // Special handling for Vercel domains
+  if (hostname.includes('vercel.app')) {
+    // On Vercel deployment, we don't need to set the domain explicitly
+    // as it can cause issues with subdomain cookies
+    return '';
+  }
+  
   // For Vercel deployments or other production domains
   return `domain=${hostname}`;
 }
@@ -107,4 +114,21 @@ export function addAuthHeaders(headers: HeadersInit = {}): HeadersInit {
   }
   
   return headers;
+}
+
+// Add a new function to clear the Firebase token
+export function clearFirebaseToken(): void {
+  if (typeof document !== 'undefined') {
+    document.cookie = `${FIREBASE_TOKEN_COOKIE}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
+  }
+  
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(FIREBASE_TOKEN_COOKIE);
+    }
+  } catch (e) {
+    // Ignore localStorage errors
+  }
+  
+  console.log('Firebase token cleared from cookies and localStorage');
 }
