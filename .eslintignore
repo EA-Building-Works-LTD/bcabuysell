@@ -1,9 +1,23 @@
-*
-**/*
-**/*.ts
-**/*.tsx
-**/*.js
-**/*.jsx
-node_modules/
-.next/
-out/ 
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Build files
+/.next/
+/out/
+/build
+/dist
+
+# Cache
+.npm
+.eslintcache
+
+# Misc
+.DS_Store
+*.pem
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Build query
-    let carsQuery = collection(db, 'cars');
+    const carsQuery = collection(db, 'cars');
     let q = query(carsQuery, orderBy('createdAt', 'desc'), limit(maxLimit));
     
     // Add status filter if provided

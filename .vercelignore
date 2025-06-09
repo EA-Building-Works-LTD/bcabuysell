@@ -1,0 +1,24 @@
+# Dependencies
+node_modules
+
+# Build output
+.next
+out
+
+# Local env files
+.env*.local
+.env
+
+# Tests
+__tests__
+*.test.js
+*.spec.js
+
+# Git related
+.git
+.github
+
+# Development tools
+.vscode
+.idea
+*.log
