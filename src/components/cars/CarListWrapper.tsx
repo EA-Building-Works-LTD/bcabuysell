@@ -40,42 +40,52 @@ const AlertDescription = ({
   <div className={`text-sm ${className}`}>{children}</div>
 );
 
-// Directly patch the API route for the CarList component
-const originalFetch = window.fetch;
-window.fetch = async function(input, init) {
-  // Only intercept calls to our API
-  if (typeof input === 'string' && input.includes('/api/cars') && !input.includes('/emergency')) {
-    try {
-      // Try the original fetch first
-      const response = await originalFetch(input, init);
-      
-      // If unauthorized, automatically fall back to emergency endpoint
-      if (response.status === 401) {
-        console.log('API returned 401, falling back to emergency endpoint');
-        const emergencyUrl = input.replace('/api/cars', '/api/cars/emergency');
-        return originalFetch(emergencyUrl, init);
-      }
-      
-      return response;
-    } catch (error) {
-      // If network error, try emergency endpoint
-      console.error('Fetch error, trying emergency endpoint:', error);
-      const emergencyUrl = typeof input === 'string' 
-        ? input.replace('/api/cars', '/api/cars/emergency')
-        : '/api/cars/emergency';
-      return originalFetch(emergencyUrl, init);
-    }
-  }
-  
-  // For all other requests, use the original fetch
-  return originalFetch(input, init);
-};
-
 export default function CarListWrapper() {
   const { user, getAuthToken } = useAuth();
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Set up fetch patching only on the client side
+  useEffect(() => {
+    // Store the original fetch function
+    const originalFetch = window.fetch;
+    
+    // Patch the fetch function to handle API errors
+    window.fetch = async function(input, init) {
+      // Only intercept calls to our API
+      if (typeof input === 'string' && input.includes('/api/cars') && !input.includes('/emergency')) {
+        try {
+          // Try the original fetch first
+          const response = await originalFetch(input, init);
+          
+          // If unauthorized, automatically fall back to emergency endpoint
+          if (response.status === 401) {
+            console.log('API returned 401, falling back to emergency endpoint');
+            const emergencyUrl = input.replace('/api/cars', '/api/cars/emergency');
+            return originalFetch(emergencyUrl, init);
+          }
+          
+          return response;
+        } catch (error) {
+          // If network error, try emergency endpoint
+          console.error('Fetch error, trying emergency endpoint:', error);
+          const emergencyUrl = typeof input === 'string' 
+            ? input.replace('/api/cars', '/api/cars/emergency')
+            : '/api/cars/emergency';
+          return originalFetch(emergencyUrl, init);
+        }
+      }
+      
+      // For all other requests, use the original fetch
+      return originalFetch(input, init);
+    };
+    
+    // Cleanup function to restore original fetch when component unmounts
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
 
   const handleTest = async () => {
     setLoading(true);

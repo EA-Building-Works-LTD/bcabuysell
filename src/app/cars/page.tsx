@@ -1,8 +1,12 @@
 import CarListWrapper from '@/components/cars/CarListWrapper';
 
+// Set dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
+// Export metadata
 export const metadata = {
-  title: 'Cars - BCA Buy Sell',
-  description: 'Browse and manage your car inventory',
+  title: 'Cars for Sale - BCA Buy & Sell',
+  description: 'Browse, filter, and search cars available for sale',
 };
 
 export default function CarsPage() {

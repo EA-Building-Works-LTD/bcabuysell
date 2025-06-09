@@ -1,232 +1,226 @@
+#!/usr/bin/env node
+
 // Script to fix common deployment issues
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-console.log('🔧 Running deployment fix script...');
+console.log('Running fix-deployment script...');
 
 // Function to ensure a file exists
-function ensureFileExists(filePath) {
-  if (!fs.existsSync(filePath)) {
-    console.log(`Creating file: ${filePath}`);
-    fs.writeFileSync(filePath, '', 'utf8');
+function ensureFileExists(filepath, content) {
+  if (!fs.existsSync(filepath)) {
+    fs.writeFileSync(filepath, content);
+    console.log(`Created: ${filepath}`);
+    return true;
   }
+  return false;
 }
 
-// Function to update file content
-function updateFile(filePath, findText, replaceText) {
-  console.log(`Updating ${filePath}...`);
-  ensureFileExists(filePath);
-  
-  let content = fs.readFileSync(filePath, 'utf8');
-  if (content.includes(findText)) {
-    content = content.replace(findText, replaceText);
-    fs.writeFileSync(filePath, content, 'utf8');
-    console.log(`✅ Updated ${filePath}`);
-  } else {
-    console.log(`⚠️ Could not find text to replace in ${filePath}`);
-  }
-}
+// Path to eslint ignore file
+const eslintIgnorePath = path.join(process.cwd(), '.eslintignore');
 
-// Fix ESLint configuration
-console.log('\n📝 Fixing ESLint configuration...');
-const eslintConfig = {
-  "extends": "next/core-web-vitals",
-  "rules": {
-    "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-unused-vars": "off",
-    "react/no-unescaped-entities": "off",
-    "react-hooks/exhaustive-deps": "warn",
-    "prefer-const": "warn"
-  }
-};
-
-fs.writeFileSync('.eslintrc.json', JSON.stringify(eslintConfig, null, 2), 'utf8');
-console.log('✅ ESLint configuration updated');
-
-// Create or update .eslintignore file
-console.log('\n📝 Updating .eslintignore...');
+// .eslintignore content
 const eslintIgnoreContent = `
 # Dependencies
-/node_modules
-/.pnp
+node_modules
+.pnp
 .pnp.js
 
 # Build files
-/.next/
-/out/
-/build
-/dist
+.next/
+out/
+build/
+dist/
 
 # Cache
-.npm
-.eslintcache
+.swc/
+.turbo
 
 # Misc
 .DS_Store
 *.pem
-.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vercel
+.vercel
 `;
 
-fs.writeFileSync('.eslintignore', eslintIgnoreContent.trim(), 'utf8');
-console.log('✅ .eslintignore updated');
+// Ensure .eslintignore exists
+ensureFileExists(eslintIgnorePath, eslintIgnoreContent);
 
-// Fix next.config.js
-console.log('\n📝 Fixing next.config.js...');
-const nextConfigContent = `/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Add environment variables that should be made available to the browser
-  env: {
-    // Firebase client config (already in .env)
-    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+// Try to fix Next.js config
+try {
+  const nextConfigPath = path.join(process.cwd(), 'next.config.js');
+  if (fs.existsSync(nextConfigPath)) {
+    let configContent = fs.readFileSync(nextConfigPath, 'utf8');
     
-    // Auth configuration
-    COOKIE_NAME: process.env.COOKIE_NAME || 'bca-buy-sell-auth',
-    COOKIE_SECURE: (process.env.NODE_ENV === 'production').toString(),
-    SESSION_MAX_AGE: (60 * 60 * 24 * 7).toString(), // 7 days
-  },
-  
-  // Configure experimental features
-  experimental: {
-    serverActions: {
-      allowedOrigins: ["localhost:3000", "*.vercel.app"]
-    },
-  },
-  
-  // Configure headers to enhance security
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          }
-        ],
-      },
-    ]
-  },
-  
-  // This is needed for proper cookie handling in some environments
-  reactStrictMode: true,
-  poweredByHeader: false,
-  
-  // Configure redirects for authentication
-  async redirects() {
-    return [
-      {
-        source: '/auth',
-        destination: '/auth/signin',
-        permanent: true,
-      },
-    ]
-  },
-  
-  // Disable eslint during build to prevent failures from linting errors
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  
-  // Disable type checking during build for faster builds
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+    // Fix experimental config if needed
+    if (configContent.includes('experimental: {')) {
+      // Ensure server actions are properly formatted as strings
+      configContent = configContent.replace(
+        /allowedOrigins: \[(.*?)\]/g, 
+        (match, origins) => {
+          // Make sure origins are quoted strings
+          const fixedOrigins = origins
+            .split(',')
+            .map(o => o.trim())
+            .filter(Boolean)
+            .map(o => o.startsWith('"') || o.startsWith("'") ? o : `"${o}"`)
+            .join(', ');
+          
+          return `allowedOrigins: [${fixedOrigins}]`;
+        }
+      );
+      
+      console.log('Fixed allowedOrigins in next.config.js');
+    }
+    
+    fs.writeFileSync(nextConfigPath, configContent);
+  }
+} catch (error) {
+  console.error('Error fixing Next.js config:', error);
 }
 
-module.exports = nextConfig
-`;
+// Fix environment variables
+try {
+  // Check for .env file
+  const envFilePath = path.join(process.cwd(), '.env');
+  if (!fs.existsSync(envFilePath)) {
+    // Create a minimal .env file for Vercel
+    fs.writeFileSync(envFilePath, 'HUSKY=0\n');
+    console.log('Created .env file');
+  }
+} catch (error) {
+  console.error('Error fixing environment variables:', error);
+}
 
-fs.writeFileSync('next.config.js', nextConfigContent, 'utf8');
-console.log('✅ next.config.js updated');
+// Ensure vercel.json exists with proper configuration
+const vercelConfigPath = path.join(process.cwd(), 'vercel.json');
+const vercelConfig = {
+  version: 2,
+  buildCommand: "npm run vercel-build",
+  installCommand: "npm install",
+  framework: "nextjs",
+  outputDirectory: ".next",
+  regions: ["iad1"],
+  env: {
+    HUSKY: "0"
+  }
+};
 
-// Create or update .vercelignore file
-console.log('\n📝 Updating .vercelignore...');
+console.log('Writing vercel.json configuration...');
+fs.writeFileSync(vercelConfigPath, JSON.stringify(vercelConfig, null, 2));
+
+// Create .vercelignore file to exclude unnecessary files
+const vercelIgnorePath = path.join(process.cwd(), '.vercelignore');
 const vercelIgnoreContent = `
-# Dependencies
-node_modules
-
-# Build output
-.next
-out
-
-# Local env files
-.env*.local
-.env
-
-# Tests
-__tests__
-*.test.js
-*.spec.js
-
-# Git related
 .git
 .github
-
-# Development tools
+node_modules
+.husky
 .vscode
-.idea
+README.md
 *.log
+.env.local
+.env.development
 `;
 
-fs.writeFileSync('.vercelignore', vercelIgnoreContent.trim(), 'utf8');
-console.log('✅ .vercelignore updated');
+console.log('Creating .vercelignore file...');
+fs.writeFileSync(vercelIgnorePath, vercelIgnoreContent.trim());
 
-// Fix cars emergency route
-console.log('\n📝 Fixing cars emergency route...');
-try {
-  const emergencyRoutePath = 'src/app/api/cars/emergency/route.ts';
-  if (fs.existsSync(emergencyRoutePath)) {
-    let emergencyRouteContent = fs.readFileSync(emergencyRoutePath, 'utf8');
-    emergencyRouteContent = emergencyRouteContent.replace('let carsQuery', 'const carsQuery');
-    fs.writeFileSync(emergencyRoutePath, emergencyRouteContent, 'utf8');
-    console.log('✅ Emergency route fixed');
-  } else {
-    console.log('⚠️ Emergency route file not found');
+// Create a client-side only indicator
+const clientWrapperPath = path.join(process.cwd(), 'src/components/ClientOnly.tsx');
+const clientWrapperContent = `'use client';
+
+import { useEffect, useState, ReactNode } from 'react';
+
+interface ClientOnlyProps {
+  children: ReactNode;
+  fallback?: ReactNode;
+}
+
+export function ClientOnly({ children, fallback = null }: ClientOnlyProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  return isClient ? children : fallback;
+}
+`;
+
+console.log('Creating ClientOnly component...');
+fs.writeFileSync(clientWrapperPath, clientWrapperContent);
+
+// Fix known issue with CarListWrapper to ensure it only runs on client
+const carListWrapperPath = path.join(process.cwd(), 'src/components/cars/CarListWrapper.tsx');
+
+if (fs.existsSync(carListWrapperPath)) {
+  console.log('Checking CarListWrapper component...');
+  let carListWrapperContent = fs.readFileSync(carListWrapperPath, 'utf8');
+  
+  // Make sure the first line is 'use client'
+  if (!carListWrapperContent.startsWith("'use client'")) {
+    carListWrapperContent = "'use client';\n\n" + carListWrapperContent;
   }
-} catch (err) {
-  console.error('❌ Error fixing emergency route:', err);
+  
+  // Make sure fetch patching happens in useEffect
+  if (carListWrapperContent.includes('window.fetch =') && 
+      !carListWrapperContent.includes('useEffect(() => {') && 
+      !carListWrapperContent.includes('window.fetch =')) {
+    console.log('Wrapping window.fetch code in useEffect for CarListWrapper...');
+    carListWrapperContent = carListWrapperContent.replace(
+      /const originalFetch = window\.fetch;/g,
+      `useEffect(() => {
+  const originalFetch = window.fetch;`
+    );
+    
+    carListWrapperContent = carListWrapperContent.replace(
+      /};(\s*)\n\s*export default/g,
+      `};
+  
+  // Cleanup function to restore original fetch
+  return () => {
+    window.fetch = originalFetch;
+  };
+}, []);\n\nexport default`
+    );
+  }
+  
+  fs.writeFileSync(carListWrapperPath, carListWrapperContent);
 }
 
-// Create a package.json script to run before deployment
-console.log('\n📝 Adding deployment script to package.json...');
-try {
-  const packageJsonPath = 'package.json';
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+// Ensure cars page is set to dynamic
+const carsPagePath = path.join(process.cwd(), 'src/app/cars/page.tsx');
+if (fs.existsSync(carsPagePath)) {
+  console.log('Checking cars page...');
+  let carsPageContent = fs.readFileSync(carsPagePath, 'utf8');
   
-  // Add predeploy script
-  packageJson.scripts = packageJson.scripts || {};
-  packageJson.scripts.predeploy = 'node fix-deployment.js';
-  packageJson.scripts.deploy = 'vercel --prod';
-  
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2), 'utf8');
-  console.log('✅ Package.json updated with deployment scripts');
-} catch (err) {
-  console.error('❌ Error updating package.json:', err);
+  if (!carsPageContent.includes("export const dynamic = 'force-dynamic'")) {
+    console.log('Adding dynamic export to cars page...');
+    // Add after imports but before other content
+    const importEndIndex = carsPageContent.indexOf('\n\n');
+    if (importEndIndex !== -1) {
+      carsPageContent = 
+        carsPageContent.slice(0, importEndIndex + 2) + 
+        "// Set dynamic rendering for this route\nexport const dynamic = 'force-dynamic';\n\n" + 
+        carsPageContent.slice(importEndIndex + 2);
+      
+      fs.writeFileSync(carsPagePath, carsPageContent);
+    }
+  }
 }
 
-console.log('\n🎉 Deployment fixes complete!');
+console.log('Fix-deployment script completed successfully.');
 console.log('\nTo deploy your application, run:');
-console.log('npm run deploy');
-console.log('\nOr commit and push these changes to trigger automatic deployment on Vercel.'); 
+console.log('npm run deploy'); 

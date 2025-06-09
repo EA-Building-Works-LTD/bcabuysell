@@ -3,20 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "build-no-lint": "cross-env NEXT_DISABLE_ESLINT=1 next build",
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepare": "husky install",
+    "prepare": "husky install || exit 0",
     "check-env": "node verify-firebase-env.js",
     "test-firebase": "node test-firebase-credentials.js",
     "setup-env": "node scripts/setup-env.js",
     "test": "echo \"No tests specified - skipping tests\" && exit 0",
     "predeploy": "node fix-deployment.js",
-    "deploy": "vercel --prod"
+    "vercel-build": "HUSKY=0 next build",
+    "deploy": "vercel"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.14",
