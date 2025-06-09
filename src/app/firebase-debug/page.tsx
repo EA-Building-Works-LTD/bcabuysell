@@ -235,16 +235,24 @@ export default function FirebaseDebugPage() {
             <div key={index}>{log}</div>
           ))}
         </pre>
-        <button 
-          onClick={checkFirebaseConnectivity}
-          className="mt-2 px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
-        >
-          Test Firebase Connectivity
-        </button>
+        <div className="flex flex-wrap gap-2 mt-2">
+          <button 
+            onClick={checkFirebaseConnectivity}
+            className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
+          >
+            Test Firebase Connectivity
+          </button>
+          <button 
+            onClick={testServerDiagnostics}
+            className="px-4 py-2 bg-indigo-500 text-white rounded hover:bg-indigo-600"
+          >
+            Check Server Config
+          </button>
+        </div>
       </div>
 
       {/* API Testing */}
-      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mb-4">
         <h2 className="text-xl font-semibold mb-2">API Connection Test</h2>
         <button 
           onClick={async () => {
@@ -281,10 +289,113 @@ export default function FirebaseDebugPage() {
             }
           }}
           disabled={isChecking}
-          className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50"
+          className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 mr-2"
         >
           {isChecking ? 'Testing...' : 'Test Cars API'}
         </button>
+        
+        <button
+          onClick={async () => {
+            addToLog('Testing emergency API...');
+            setIsChecking(true);
+            try {
+              const response = await fetch('/api/cars/emergency');
+              const data = await response.json();
+              
+              addToLog(`Emergency API response: ${response.status} ${response.statusText}`);
+              
+              setDebugResponse({
+                emergencyApiTest: {
+                  status: response.status,
+                  statusText: response.statusText,
+                  data: data
+                }
+              });
+            } catch (error) {
+              addToLog(`Emergency API test error: ${(error as Error).message}`);
+              setDebugResponse({
+                emergencyApiTest: {
+                  error: (error as Error).message
+                }
+              });
+            } finally {
+              setIsChecking(false);
+            }
+          }}
+          disabled={isChecking}
+          className="px-4 py-2 bg-amber-500 text-white rounded hover:bg-amber-600 disabled:opacity-50"
+        >
+          Test Emergency API
+        </button>
+      </div>
+      
+      {/* Troubleshooting Guide */}
+      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-xl font-semibold">Troubleshooting Guide</h2>
+          <button 
+            onClick={() => setShowTroubleshootingGuide(!showTroubleshootingGuide)}
+            className="text-sm px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded"
+          >
+            {showTroubleshootingGuide ? 'Hide' : 'Show'}
+          </button>
+        </div>
+        
+        {showTroubleshootingGuide && (
+          <div className="text-sm space-y-4">
+            <div>
+              <h3 className="font-medium text-lg">Common Issues</h3>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Token validation failures</li>
+                <li>API 401 Unauthorized errors</li>
+                <li>Firestore 400 Bad Request errors</li>
+                <li>Missing environment variables</li>
+                <li>Cookie issues in production</li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-medium text-lg">Solutions to Try</h3>
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>
+                  <strong>Force token refresh:</strong> Click the "Force Token Refresh" button above to get a fresh token from Firebase.
+                </li>
+                <li>
+                  <strong>Clear and re-login:</strong> Click "Clear Token" and then sign out and back in.
+                </li>
+                <li>
+                  <strong>Check server configuration:</strong> Use the "Check Server Config" button to verify Firebase Admin SDK is properly configured.
+                </li>
+                <li>
+                  <strong>Verify environment variables:</strong> Make sure the following environment variables are set in Vercel:
+                  <ul className="list-disc pl-5 mt-1">
+                    <li>NEXT_PUBLIC_FIREBASE_API_KEY</li>
+                    <li>NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN</li>
+                    <li>NEXT_PUBLIC_FIREBASE_PROJECT_ID</li>
+                    <li>FIREBASE_CLIENT_EMAIL</li>
+                    <li>FIREBASE_PRIVATE_KEY (make sure to use double quotes and include \n)</li>
+                  </ul>
+                </li>
+                <li>
+                  <strong>If all else fails:</strong> Use the Emergency API endpoint for temporary access while troubleshooting.
+                </li>
+              </ol>
+            </div>
+            
+            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+              <p className="font-medium">Need help?</p>
+              <p>If you're still experiencing issues after trying these solutions, consider redeploying the application or contact support.</p>
+              <div className="mt-2">
+                <Link 
+                  href="/cars" 
+                  className="inline-block px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                >
+                  Return to Cars
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,50 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/database';
-import Car from '@/models/Car';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where, orderBy, limit, DocumentData } from 'firebase/firestore';
+import { retryFirestoreOperation } from '@/lib/firestore-utils';
 
-// EMERGENCY ROUTE - TEMPORARY ACCESS WITHOUT AUTH FOR DEBUGGING
-// THIS IS A TEMPORARY SOLUTION AND SHOULD BE REMOVED AFTER FIXING THE AUTHENTICATION ISSUES
+// Emergency API route that doesn't require authentication
+// Use only for troubleshooting and diagnostics
 export async function GET(request: NextRequest) {
   try {
-    // Connect to the database
-    await connectDB();
+    console.log('Emergency API called');
     
     // Get query parameters
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
+    const searchParams = request.nextUrl.searchParams;
+    const statusFilter = searchParams.get('status');
+    const limitParam = searchParams.get('limit');
+    const maxLimit = limitParam ? parseInt(limitParam) : 100;
     
-    console.log('EMERGENCY API: Fetching cars with status:', status || 'all');
-    
-    // Build query based on filters
-    const query: any = {};
-    
-    // Add status filter if provided
-    if (status) {
-      query.status = status;
+    // Check if Firestore is initialized
+    if (!db) {
+      return NextResponse.json({
+        success: false,
+        error: 'Firestore not initialized',
+        emergency: true
+      }, { status: 500 });
     }
     
-    // Get cars matching the query
-    const cars = await Car.find(query).sort({ createdAt: -1 });
-    console.log(`EMERGENCY API: Found ${cars.length} cars matching query`);
+    // Build query
+    let carsQuery = collection(db, 'cars');
+    let q = query(carsQuery, orderBy('createdAt', 'desc'), limit(maxLimit));
     
-    // Add CORS headers to allow access from any origin (for debugging)
-    const headers = new Headers();
-    headers.set('Access-Control-Allow-Origin', '*');
-    headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // Add status filter if provided
+    if (statusFilter) {
+      q = query(carsQuery, where('status', '==', statusFilter), orderBy('createdAt', 'desc'), limit(maxLimit));
+    }
     
-    return NextResponse.json({ 
+    // Use retry wrapper for better reliability
+    const snapshot = await retryFirestoreOperation(() => getDocs(q));
+    
+    const cars: DocumentData[] = [];
+    
+    snapshot.forEach(doc => {
+      cars.push({
+        _id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
+        updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
+      });
+    });
+    
+    return NextResponse.json({
+      success: true,
       data: cars,
-      message: 'Emergency access mode - authentication bypassed',
-      timestamp: new Date().toISOString() 
-    }, { 
-      headers 
+      count: cars.length,
+      emergency: true,
+      message: 'Emergency mode: Authentication bypassed'
     });
   } catch (error: any) {
-    console.error('Error in emergency cars route:', error);
-    return NextResponse.json({ 
-      error: error.message || 'Failed to fetch cars',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    console.error('Emergency API error:', error);
+    
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'An error occurred fetching data',
+      emergency: true
     }, { status: 500 });
   }
 } 
