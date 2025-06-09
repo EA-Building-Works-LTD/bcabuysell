@@ -21,8 +21,14 @@ export async function fetchJson(url: string, options?: RequestInit) {
 }
 
 export async function authFetch(url: string, options?: RequestInit) {
-  // Since we removed authentication, this is now just a simple fetch
-  return fetchJson(url, options);
+  // Since we removed authentication, this is now just a simple fetch that returns Response object
+  return fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+    ...options,
+  });
 }
 
 export function clearAuthToken() {
