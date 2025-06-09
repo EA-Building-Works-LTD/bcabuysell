@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
+import { OAuth2Client } from 'google-auth-library';
 
 export async function GET() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -61,6 +62,9 @@ export async function GET() {
       }
     }
     
+    // Current redirect URI
+    const redirectUri = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/callback/google`;
+    
     return NextResponse.json({
       status: 'info',
       message: 'Your credentials look valid, but authentication is failing.',
@@ -69,7 +73,7 @@ export async function GET() {
         clientIdValid: true,
         clientSecretValid: true,
         projectNumber: projectId,
-        redirectUri: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/callback/google`,
+        redirectUri,
         tokenResponse
       },
       checks,
@@ -93,10 +97,10 @@ export async function GET() {
 }
 
 // Function to test the token endpoint
-async function checkToken(oauth2Client: any) {
+async function checkToken(oauth2Client: OAuth2Client) {
   try {
     // We're just generating a test URL, not actually doing the authentication
-    const authUrl = oauth2Client.generateAuthUrl({
+    oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email']
     });

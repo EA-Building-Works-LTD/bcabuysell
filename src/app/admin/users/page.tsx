@@ -36,6 +36,13 @@ interface User {
   createdAt: string;
 }
 
+// Define a type for API errors
+interface ApiError {
+  message: string;
+  error?: string;
+  status?: number;
+}
+
 export default function AdminUsersPage() {
   const { user, userData, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -109,9 +116,11 @@ export default function AdminUsersPage() {
       ));
       
       toast.success(`User ${user.name} is now ${newRole}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating user role:', error);
-      toast.error(error.message || 'Failed to update user role');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update user role'
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -137,9 +146,11 @@ export default function AdminUsersPage() {
       
       toast.success(`User ${userToDelete.name} has been deleted`);
       setUserToDelete(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting user:', error);
-      toast.error(error.message || 'Failed to delete user');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to delete user'
+      );
     } finally {
       setIsProcessing(false);
     }

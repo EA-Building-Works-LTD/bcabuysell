@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface TokenError {
+  message: string;
+  code?: string;
+  [key: string]: unknown;
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get the token from the request body
@@ -24,11 +30,13 @@ export async function POST(request: NextRequest) {
       message: 'Token is present. Full verification requires Firebase Admin SDK.' 
     });
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error verifying token:', error);
     
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     return NextResponse.json(
-      { error: 'Token verification failed', message: error.message },
+      { error: 'Token verification failed', message: errorMessage },
       { status: 403 }
     );
   }

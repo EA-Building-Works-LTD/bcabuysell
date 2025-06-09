@@ -3,8 +3,23 @@ import connectDB from '@/lib/database';
 import User from '@/models/User';
 import { withAdminAuth } from '@/lib/api-utils';
 
+// Define a better type for admin user
+interface AdminUser {
+  _id: { toString: () => string };
+  role: string;
+  email: string;
+  name?: string;
+  displayName?: string;
+}
+
+// Define a type for API errors
+interface ApiErrorResponse {
+  message: string;
+  error?: string;
+}
+
 // GET /api/admin/users - Get all users (admin only)
-export const GET = withAdminAuth(async (request: NextRequest, adminUser: any) => {
+export const GET = withAdminAuth(async (_request: NextRequest, adminUser: AdminUser) => {
   try {
     // Connect to database
     await connectDB();
@@ -23,14 +38,15 @@ export const GET = withAdminAuth(async (request: NextRequest, adminUser: any) =>
     }));
     
     return NextResponse.json({ users: formattedUsers });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching users:', error);
-    return NextResponse.json({ error: error.message || 'Failed to fetch users' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch users';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 });
 
 // PATCH /api/admin/users - Update a user's role (admin only)
-export const PATCH = withAdminAuth(async (request: NextRequest, adminUser: any) => {
+export const PATCH = withAdminAuth(async (request: NextRequest, adminUser: AdminUser) => {
   try {
     // Connect to database
     await connectDB();
@@ -72,14 +88,15 @@ export const PATCH = withAdminAuth(async (request: NextRequest, adminUser: any) 
         role: updatedUser.role,
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating user:', error);
-    return NextResponse.json({ error: error.message || 'Failed to update user' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update user';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 });
 
 // DELETE /api/admin/users - Delete a user (admin only)
-export const DELETE = withAdminAuth(async (request: NextRequest, adminUser: any) => {
+export const DELETE = withAdminAuth(async (request: NextRequest, adminUser: AdminUser) => {
   try {
     // Connect to database
     await connectDB();
@@ -108,8 +125,9 @@ export const DELETE = withAdminAuth(async (request: NextRequest, adminUser: any)
     // This would be a good place to also delete or reassign cars owned by this user
     
     return NextResponse.json({ message: 'User deleted successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting user:', error);
-    return NextResponse.json({ error: error.message || 'Failed to delete user' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete user';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }); 

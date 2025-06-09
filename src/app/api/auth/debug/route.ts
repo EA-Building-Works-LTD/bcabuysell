@@ -32,10 +32,15 @@ export async function GET(request: NextRequest) {
           .filter(([key]) => !key.includes('cookie'))
       )
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Authentication error';
+    const errorStack = error instanceof Error && process.env.NODE_ENV === 'development' 
+      ? error.stack 
+      : undefined;
+    
     return NextResponse.json({
-      error: error.message || 'Authentication error',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      error: errorMessage,
+      stack: errorStack
     }, { status: 500 });
   }
 } 

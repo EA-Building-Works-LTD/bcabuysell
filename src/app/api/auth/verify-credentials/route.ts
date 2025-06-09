@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
+import { OAuth2Client } from 'google-auth-library';
 
 export async function GET() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -50,7 +51,7 @@ export async function GET() {
 }
 
 // Function to test if the token endpoint accepts these credentials
-async function testTokenEndpoint(oauth2Client: any) {
+async function testTokenEndpoint(oauth2Client: OAuth2Client) {
   try {
     // Generate a test URL - we won't actually open this
     const authUrl = oauth2Client.generateAuthUrl({
