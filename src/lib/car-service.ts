@@ -1,6 +1,5 @@
 import connectDB from '@/lib/database';
 import Car from '@/models/Car';
-import User from '@/models/User';
 import mongoose from 'mongoose';
 
 /**
@@ -108,11 +107,8 @@ export async function updateCar(carId: string, carData: any, userId: string) {
       throw new Error('Car not found');
     }
     
-    // Check if user is the owner of the car or an admin
-    const user = await User.findById(userId);
-    if (car.userId.toString() !== userId && user?.role !== 'admin') {
-      throw new Error('Unauthorized: You do not have permission to update this car');
-    }
+    // Since we removed authentication, anyone can update any car
+    // No permission check needed
     
     // Update car
     Object.assign(car, {
@@ -152,11 +148,8 @@ export async function deleteCar(carId: string, userId: string) {
       throw new Error('Car not found');
     }
     
-    // Check if user is the owner of the car or an admin
-    const user = await User.findById(userId);
-    if (car.userId.toString() !== userId && user?.role !== 'admin') {
-      throw new Error('Unauthorized: You do not have permission to delete this car');
-    }
+    // Since we removed authentication, anyone can delete any car
+    // No permission check needed
     
     // Delete car
     await car.deleteOne();

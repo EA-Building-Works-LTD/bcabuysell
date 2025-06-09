@@ -71,9 +71,8 @@ const CarSchema = new Schema<ICar>(
       default: 'purchased' 
     },
     userId: { 
-      type: mongoose.Schema.Types.ObjectId, 
-      ref: 'User',
-      default: 'default-user' // Default user ID instead of requiring it
+      type: String, // Changed to String since we're using 'default-user'
+      default: 'default-user'
     }
   },
   { timestamps: true }
