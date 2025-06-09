@@ -3,9 +3,25 @@ import { join } from 'path';
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 
+// Configure the API route to handle multipart/form-data
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   console.log('Upload API called');
+  console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+  console.log('Request method:', request.method);
+  console.log('Content-Type header:', request.headers.get('content-type'));
+  
+  // Temporarily disabled to test upload logic
+  // if (process.env.VERCEL) {
+  //   return NextResponse.json({ 
+  //     error: 'File uploads not supported in production. Please set up cloud storage like Cloudinary or Vercel Blob.' 
+  //   }, { status: 501 });
+  // }
+  
   try {
+    console.log('Attempting to parse formData...');
     const formData = await request.formData();
     const file = formData.get('file') as File;
 

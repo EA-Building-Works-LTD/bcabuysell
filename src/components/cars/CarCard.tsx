@@ -215,11 +215,11 @@ export default function CarCard({ car, onDelete, onUpdate }: CarCardProps) {
           
           {/* Features */}
           <div className="flex flex-wrap gap-1 my-1.5">
-            {/* {car.mileage && (
-              <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-full">
+            {car.mileage && (
+              <span className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-full border border-gray-200 dark:border-gray-600">
                 {car.mileage.toLocaleString()} miles
               </span>
-            )} */}
+            )}
             {car.fuelType && (
               <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-800/50">
                 {car.fuelType}

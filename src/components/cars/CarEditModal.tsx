@@ -183,9 +183,16 @@ export default function CarEditModal({ car, isOpen, onClose, onSave }: CarEditMo
         console.log('Uploading file:', selectedFile.name, selectedFile.type, selectedFile.size);
         imageFormData.append('file', selectedFile);
         
-        // Upload the image
+        // Upload the image - debug approach
         console.log('Sending upload request to /api/upload');
-        const uploadResponse = await authFetch('/api/upload', {
+        console.log('FormData details:', {
+          hasFile: imageFormData.has('file'),
+          entries: Array.from(imageFormData.entries()).map(([key, value]) => 
+            [key, value instanceof File ? `File: ${value.name}` : value]
+          )
+        });
+        
+        const uploadResponse = await fetch('/api/upload', {
           method: 'POST',
           body: imageFormData,
         });
