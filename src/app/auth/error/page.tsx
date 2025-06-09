@@ -1,12 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-export default function AuthError() {
+// Loading component to show while suspense is resolving
+function AuthErrorLoading() {
+  return (
+    <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Card className="w-full max-w-md p-8 shadow-xl">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500 mx-auto"></div>
+          <h2 className="mt-4 text-lg font-medium">Loading error details...</h2>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// Main component that uses useSearchParams
+function AuthErrorContent() {
   const searchParams = useSearchParams();
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [errorDetails, setErrorDetails] = useState<string>('');
@@ -147,5 +162,14 @@ export default function AuthError() {
         </div>
       </Card>
     </div>
+  );
+}
+
+// Wrap the component that uses useSearchParams in Suspense
+export default function AuthError() {
+  return (
+    <Suspense fallback={<AuthErrorLoading />}>
+      <AuthErrorContent />
+    </Suspense>
   );
 } 
