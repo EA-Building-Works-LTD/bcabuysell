@@ -89,13 +89,13 @@ export async function getAuthUser(request: NextRequest) {
         
         // In development, return mock user
         if (process.env.NODE_ENV === 'development') {
-          return {
-            _id: 'mock-user-id',
+        return {
+          _id: 'mock-user-id',
             uid,
             email: decodedToken.email || 'mock@example.com',
             displayName: decodedToken.name || 'Mock User',
-            role: 'admin'
-          };
+          role: 'admin'
+        };
         }
         
         throw createError;
@@ -142,9 +142,9 @@ export async function getAuthUser(request: NextRequest) {
 export function withAuth(handler: (req: NextRequest, user: any) => Promise<NextResponse>) {
   return async (request: NextRequest) => {
     try {
-      const user = await getAuthUser(request);
-      
-      if (!user) {
+    const user = await getAuthUser(request);
+    
+    if (!user) {
         console.log('Auth middleware: Unauthorized request');
         // Add response headers for debugging
         const headers = new Headers();
@@ -158,9 +158,9 @@ export function withAuth(handler: (req: NextRequest, user: any) => Promise<NextR
           status: 401,
           headers
         });
-      }
-      
-      return handler(request, user);
+    }
+    
+    return handler(request, user);
     } catch (error) {
       console.error('Error in auth middleware:', error);
       
@@ -180,9 +180,9 @@ export function withAuth(handler: (req: NextRequest, user: any) => Promise<NextR
 export function withAdminAuth(handler: (req: NextRequest, user: any) => Promise<NextResponse>) {
   return async (request: NextRequest) => {
     try {
-      const user = await getAuthUser(request);
-      
-      if (!user) {
+    const user = await getAuthUser(request);
+    
+    if (!user) {
         console.log('Admin middleware: Unauthorized request');
         return NextResponse.json({ 
           error: 'Unauthorized',
@@ -190,9 +190,9 @@ export function withAdminAuth(handler: (req: NextRequest, user: any) => Promise<
         }, { 
           status: 401 
         });
-      }
-      
-      if (user.role !== 'admin') {
+    }
+    
+    if (user.role !== 'admin') {
         console.log('Admin middleware: Forbidden - user is not admin', user.email, user.role);
         return NextResponse.json({ 
           error: 'Admin access required',
@@ -200,9 +200,9 @@ export function withAdminAuth(handler: (req: NextRequest, user: any) => Promise<
         }, { 
           status: 403 
         });
-      }
-      
-      return handler(request, user);
+    }
+    
+    return handler(request, user);
     } catch (error) {
       console.error('Error in admin auth middleware:', error);
       
@@ -214,4 +214,16 @@ export function withAdminAuth(handler: (req: NextRequest, user: any) => Promise<
       });
     }
   };
+}
+
+// Check if the current route is an emergency route that bypasses auth
+export function isEmergencyRoute(pathname: string): boolean {
+  const emergencyRoutes = [
+    '/api/cars/emergency',
+    '/api/auth/token-fix',
+    '/api/diagnose',
+    '/api/auth/debug-token',
+  ];
+  
+  return emergencyRoutes.some(route => pathname === route || pathname.startsWith(route));
 } 

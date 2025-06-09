@@ -91,7 +91,7 @@ export default function Home() {
         <div>
           <h1 className="text-2xl font-bold">Welcome to BCA Buy Sell</h1>
           <p className="text-gray-600 dark:text-gray-300">Hello, {user.displayName || user.email}</p>
-          {userData?.role === 'admin' && (
+      {userData?.role === 'admin' && (
             <p className="text-blue-600 dark:text-blue-400 text-sm font-medium">Admin privileges enabled</p>
           )}
         </div>

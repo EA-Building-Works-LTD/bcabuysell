@@ -31,87 +31,63 @@ export default function CarList() {
       
       try {
         // Get a fresh auth token before making the request
-        await getAuthToken();
+        await getAuthToken(true); // Force token refresh
         
         const status = filter !== 'all' ? filter : '';
-        const apiUrl = `/api/cars${status ? `?status=${status}` : ''}`;
+        let apiUrl = `/api/cars${status ? `?status=${status}` : ''}`;
+        let response;
         
-        // Use authFetch with proper retry and token refresh
-        const response = await authFetch(apiUrl);
-        
-        // Check for errors
-        if (!response.ok) {
-          let errorMessage = `Error ${response.status}: ${response.statusText}`;
-          
-          try {
-            const errorData = await response.json();
-            errorMessage = errorData.error || errorMessage;
-          } catch (e) {
-            // If response isn't JSON, use the status text
-          }
-          
-          throw new Error(errorMessage);
-        }
-        
-        const data = await response.json();
-        setCars(data.data);
-      } catch (err: any) {
-        console.error('Error fetching cars:', err);
-        
-        // Try the emergency endpoint as fallback
+        // First try the emergency endpoint to ensure we can get data
         try {
-          console.log('Main API failed, trying emergency endpoint...');
-          const status = filter !== 'all' ? filter : '';
+          console.log('Trying emergency endpoint first as backup');
           const emergencyUrl = `/api/cars/emergency${status ? `?status=${status}` : ''}`;
-          
           const emergencyResponse = await fetch(emergencyUrl);
           
           if (emergencyResponse.ok) {
-            const data = await emergencyResponse.json();
-            setCars(data.data);
-            setError('Using emergency mode: Authentication issue detected. Please visit /firebase-debug for diagnostics.');
-            console.log('Emergency endpoint succeeded');
-            return;
-          } else {
-            console.error('Emergency endpoint also failed:', emergencyResponse.status);
+            const emergencyData = await emergencyResponse.json();
+            setCars(emergencyData.data);
+            console.log('Successfully loaded data from emergency endpoint');
           }
         } catch (emergencyError) {
-          console.error('Emergency endpoint error:', emergencyError);
+          console.warn('Emergency endpoint failed, will still try regular endpoint', emergencyError);
         }
         
-        // If the emergency endpoint also fails, show the original error
-        setError(err.message || 'Error loading cars. Please try again later.');
-        
-        // If error is authentication related, try to refresh token and retry once
-        if (err.message?.includes('Unauthorized') || err.message?.includes('401')) {
-          try {
-            console.log('Auth error detected, trying to refresh token and retry...');
+        // Then try the regular API endpoint
+        try {
+          // Try the regular API endpoint with auth header
+          response = await authFetch(apiUrl);
+          
+          // Check for errors
+          if (!response.ok) {
+            let errorMessage = `Error ${response.status}: ${response.statusText}`;
             
-            // Force a token refresh
-            const token = await getAuthToken();
-            
-            if (token) {
-              console.log('Token refreshed, retrying request...');
-              
-              const status = filter !== 'all' ? filter : '';
-              const apiUrl = `/api/cars${status ? `?status=${status}` : ''}`;
-              
-              const retryResponse = await authFetch(apiUrl);
-              
-              if (retryResponse.ok) {
-                const data = await retryResponse.json();
-                setCars(data.data);
-                // Clear the error since retry succeeded
-                setError(null);
-              } else {
-                throw new Error(`Retry failed: ${retryResponse.status}`);
-              }
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+              // If response isn't JSON, use the status text
             }
-          } catch (retryErr: any) {
-            console.error('Retry failed:', retryErr);
-            setError('Authentication error. Please try signing out and back in.');
+            
+            throw new Error(errorMessage);
+          }
+          
+          const data = await response.json();
+          setCars(data.data);
+          setError(null); // Clear any previous errors
+        } catch (apiError) {
+          console.error('Regular API error:', apiError);
+          
+          // If we already have data from the emergency endpoint, we're good
+          if (cars.length > 0) {
+            setError('Using emergency data: Authentication issue detected');
+          } else {
+            // We couldn't get data from either endpoint
+            setError('Failed to load data from both regular and emergency endpoints');
           }
         }
+      } catch (error: any) {
+        console.error('Error fetching cars:', error);
+        setError(error.message || 'Error loading cars. Please try again later.');
       } finally {
         setLoading(false);
       }

@@ -67,7 +67,7 @@ type AuthContextType = {
   error: string | null;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
-  getAuthToken: () => Promise<string | null>;
+  getAuthToken: (forceRefresh?: boolean) => Promise<string | null>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -139,34 +139,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Get Firebase auth token and update cookie
-  const getAuthToken = async () => {
-    // If no user is signed in, return null
-    if (!user) return null;
+  // Function to get an auth token
+  const getAuthToken = async (forceRefresh = false) => {
+    if (!user) {
+      console.warn('No user is signed in. Cannot get token.');
+      return null;
+    }
     
     try {
-      // Always force refresh the token to ensure it's not expired
-      const token = await getIdToken(user, true);
+      // If not forcing refresh, first try the existing token
+      if (!forceRefresh) {
+        const existingToken = getFirebaseToken();
+        if (existingToken) {
+          console.debug('Using existing token from storage');
+          return existingToken;
+        }
+      }
       
-      // Store the token in both cookie and localStorage
-      setFirebaseToken(token);
+      // No valid token in storage or force refresh requested, get a fresh one
+      console.debug('Getting fresh token from Firebase');
+      const token = await getIdToken(user, true); // Force refresh
       
-      // For debugging in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Auth token refreshed and stored');
+      if (token) {
+        // Save the token to localStorage/cookie
+        setFirebaseToken(token);
       }
       
       return token;
     } catch (error) {
-      console.error('Error getting fresh auth token:', error);
-      
-      // Try to get existing token as fallback
-      const existingToken = getFirebaseToken();
-      if (existingToken) {
-        console.log('Using existing token from storage');
-        return existingToken;
-      }
-      
+      console.error('Error getting auth token:', error);
       return null;
     }
   };
@@ -180,7 +181,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     console.log('Setting up Firebase auth state listener');
-    
+
     // Continue with auth state listener
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       try {
@@ -289,8 +290,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                       console.log('Offline error detected, continuing with fallback');
                       setOfflineMode(true);
                     } else {
-                      // Fallback - make user an admin if we can't check stats
-                      newUserData.role = 'admin';
+                    // Fallback - make user an admin if we can't check stats
+                    newUserData.role = 'admin';
                     }
                   }
                 }
@@ -332,7 +333,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               setOfflineMode(true);
               // Don't set error for offline issues
             } else {
-              setError('Error fetching user data. Please try again.');
+            setError('Error fetching user data. Please try again.');
             }
           }
         } else {
@@ -354,7 +355,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setOfflineMode(true);
           // Don't set error for offline issues
         } else {
-          setError('Authentication error. Please refresh the page.');
+        setError('Authentication error. Please refresh the page.');
         }
       } finally {
         setLoading(false);
@@ -424,12 +425,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AuthContext.Provider
       value={{
-        user,
-        userData,
-        loading,
-        error,
-        signInWithGoogle,
-        signOut,
+      user, 
+      userData, 
+      loading, 
+      error, 
+      signInWithGoogle, 
+      signOut,
         getAuthToken,
       }}
     >

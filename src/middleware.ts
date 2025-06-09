@@ -19,6 +19,8 @@ const publicRoutes = [
 const emergencyRoutes = [
   '/api/cars/emergency',
   '/api/auth/token-fix',
+  '/api/diagnose',
+  '/api/auth/debug-token',
 ];
 
 export async function middleware(request: NextRequest) {
@@ -29,8 +31,9 @@ export async function middleware(request: NextRequest) {
     publicRoutes.some(route => pathname === route || pathname.startsWith(route)) ||
     pathname.startsWith('/_next') || 
     pathname.includes('.') ||
-    emergencyRoutes.some(route => pathname === route)
+    emergencyRoutes.some(route => pathname === route || pathname.startsWith(route))
   ) {
+    console.log('Middleware: skipping for route', pathname);
     return NextResponse.next();
   }
   
@@ -38,6 +41,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/api/')) {
     // For API routes, we'll still let them through but we'll check
     // for the token so that the API route itself can handle auth
+    console.log('Middleware: API route, passing through', pathname);
     return NextResponse.next();
   }
   

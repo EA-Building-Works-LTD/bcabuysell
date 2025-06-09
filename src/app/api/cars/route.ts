@@ -1,93 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validateApiAuth } from '@/lib/auth-utils';
+import { getAllCars, createCar } from '@/lib/car-service';
 import connectDB from '@/lib/database';
-import Car from '@/models/Car';
-import User from '@/models/User';
-import mongoose from 'mongoose';
-import { withAuth } from '@/lib/api-utils';
 
 // GET /api/cars - Get all cars with optional status filter
-export const GET = withAuth(async (request: NextRequest, user: any) => {
+export async function GET(req: NextRequest) {
+  console.log('API /cars: Request received');
+  
   try {
-    // Connect to the database
-    await connectDB();
+    // Validate authentication
+    const authResult = await validateApiAuth(req);
     
-    // Get query parameters
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status');
-    
-    console.log('API: Fetching cars with status:', status || 'all');
-    console.log('API: User:', user._id, user.email, user.role);
-    
-    // Build query based on filters
-    const query: any = {};
-    
-    // Add status filter if provided
-    if (status) {
-      query.status = status;
+    if (!authResult.isAuthorized) {
+      console.error('API /cars: Unauthorized request');
+      return authResult.response;
     }
     
-    // If not admin, only show user's own cars
-    if (user.role !== 'admin') {
-      console.log('API: Restricting to user cars only');
-      query.userId = user._id;
-    }
+    // Extract query parameters
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get('status') || '';
     
-    // Get cars matching the query
-    const cars = await Car.find(query).sort({ createdAt: -1 });
-    console.log(`API: Found ${cars.length} cars matching query`);
+    console.log(`API /cars: Fetching cars with status filter: ${status || 'all'}`);
     
-    return NextResponse.json({ data: cars });
-  } catch (error: any) {
-    console.error('Error fetching cars:', error);
+    // Get cars data
+    const cars = await getAllCars(status, authResult.userId);
     
-    // Log additional context for debugging
-    console.error('Request URL:', request.url);
-    console.error('User context:', {
-      id: user?._id,
-      email: user?.email,
-      role: user?.role
+    console.log(`API /cars: Returning ${cars.length} cars`);
+    
+    // Return successful response with the cars data
+    return NextResponse.json({
+      success: true,
+      data: cars,
+      count: cars.length,
+      message: 'Cars fetched successfully'
     });
+  } catch (error: any) {
+    console.error('API /cars: Error:', error);
     
-    return NextResponse.json({ 
-      error: error.message || 'Failed to fetch cars',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      context: { user: user?._id, role: user?.role }
-    }, { status: 500 });
+    // Handle database or server errors
+    return NextResponse.json(
+      { 
+        error: error.message || 'Internal server error', 
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+      }, 
+      { status: 500 }
+    );
   }
-});
+}
 
 // POST /api/cars - Create a new car
-export const POST = withAuth(async (request: NextRequest, user: any) => {
+export async function POST(req: NextRequest) {
   try {
-    // Connect to the database
-    await connectDB();
+    // Validate authentication
+    const authResult = await validateApiAuth(req);
     
-    // Parse the request body
-    const data = await request.json();
+    if (!authResult.isAuthorized) {
+      return authResult.response;
+    }
     
-    console.log('API: Creating new car for user:', user._id);
+    // Parse request body
+    const carData = await req.json();
     
-    // Create new car with user ID
-    const newCar = await Car.create({
-      ...data,
-      userId: new mongoose.Types.ObjectId(user._id)
-    });
-    
-    return NextResponse.json({ message: 'Car created successfully', car: newCar }, { status: 201 });
-  } catch (error: any) {
-    console.error('Error creating car:', error);
-    
-    // Log additional context for debugging
-    console.error('Request URL:', request.url);
-    console.error('User context:', {
-      id: user?._id,
-      email: user?.email,
-      role: user?.role
-    });
+    // Create car using the service
+    const car = await createCar(carData, authResult.userId as string);
     
     return NextResponse.json({ 
-      error: error.message || 'Failed to create car',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+      success: true,
+      data: car,
+      message: 'Car created successfully'
+    }, { status: 201 });
+  } catch (error: any) {
+    console.error('Error creating car:', error);
+    return NextResponse.json({ 
+      error: error.message || 'Failed to create car'
     }, { status: 500 });
   }
-}); 
+}
+
+// Add middleware for this route
+export const dynamic = 'force-dynamic'; // Do not cache this route 

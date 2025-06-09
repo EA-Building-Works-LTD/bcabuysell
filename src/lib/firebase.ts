@@ -20,8 +20,8 @@ import {
 const isDev = process.env.NODE_ENV === 'development';
 
 if (isDev) {
-  // Debug environment variables - more detailed logging
-  console.log('Firebase environment variables detailed check:');
+// Debug environment variables - more detailed logging
+console.log('Firebase environment variables detailed check:');
   console.log('NEXT_PUBLIC_FIREBASE_API_KEY:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'Present' : 'Missing');
   console.log('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:', process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ? 'Present' : 'Missing');
   console.log('NEXT_PUBLIC_FIREBASE_PROJECT_ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ? 'Present' : 'Missing');
@@ -122,26 +122,26 @@ const initializeWithRetry = async (maxRetries = 3, initialDelay = 1000) => {
   let delay = initialDelay;
 
   while (retries < maxRetries) {
-    try {
-      // Initialize or get existing Firebase app
-      if (getApps().length === 0) {
+try {
+  // Initialize or get existing Firebase app
+  if (getApps().length === 0) {
         if (isDev) console.log('Initializing new Firebase app...');
         app = initializeApp(configToUse);
-      } else {
-        app = getApps()[0];
+  } else {
+    app = getApps()[0];
         if (isDev) console.log('Using existing Firebase app');
-      }
+  }
 
-      // Initialize authentication
-      auth = getAuth(app);
-      googleProvider = new GoogleAuthProvider();
-      googleProvider.setCustomParameters({ prompt: 'select_account' });
+  // Initialize authentication
+  auth = getAuth(app);
+  googleProvider = new GoogleAuthProvider();
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
       if (isDev) console.log('Firebase Auth initialized successfully');
 
       // Initialize Firestore with enhanced offline support
       firestore = initializeFirestoreWithOfflineSupport(app);
       if (isDev) console.log('Firestore initialized successfully');
-      
+  
       return true;
     } catch (error) {
       retries++;

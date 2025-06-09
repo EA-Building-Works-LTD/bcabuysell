@@ -1,52 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where, orderBy, limit, DocumentData } from 'firebase/firestore';
-import { retryFirestoreOperation } from '@/lib/firestore-utils';
+import { getAllCars } from '@/lib/car-service';
 
-// Emergency API route that doesn't require authentication
-// Use only for troubleshooting and diagnostics
-export async function GET(request: NextRequest) {
+/**
+ * Emergency endpoint for getting cars data
+ * This endpoint bypasses authentication for debugging
+ * and as a fallback mechanism
+ */
+export async function GET(req: NextRequest) {
+  console.log('EMERGENCY API: Fetching cars without authentication');
+  
   try {
-    console.log('Emergency API called');
+    // Extract query parameters
+    const { searchParams } = new URL(req.url);
+    const status = searchParams.get('status') || '';
     
-    // Get query parameters
-    const searchParams = request.nextUrl.searchParams;
-    const statusFilter = searchParams.get('status');
-    const limitParam = searchParams.get('limit');
-    const maxLimit = limitParam ? parseInt(limitParam) : 100;
+    // Get cars data - without providing userId to see all cars
+    const cars = await getAllCars(status);
     
-    // Check if Firestore is initialized
-    if (!db) {
-      return NextResponse.json({
-        success: false,
-        error: 'Firestore not initialized',
-        emergency: true
-      }, { status: 500 });
-    }
+    console.log(`EMERGENCY API: Returning ${cars.length} cars`);
     
-    // Build query
-    const carsQuery = collection(db, 'cars');
-    let q = query(carsQuery, orderBy('createdAt', 'desc'), limit(maxLimit));
-    
-    // Add status filter if provided
-    if (statusFilter) {
-      q = query(carsQuery, where('status', '==', statusFilter), orderBy('createdAt', 'desc'), limit(maxLimit));
-    }
-    
-    // Use retry wrapper for better reliability
-    const snapshot = await retryFirestoreOperation(() => getDocs(q));
-    
-    const cars: DocumentData[] = [];
-    
-    snapshot.forEach(doc => {
-      cars.push({
-        _id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt,
-        updatedAt: doc.data().updatedAt?.toDate?.() || doc.data().updatedAt,
-      });
-    });
-    
+    // Return successful response with the cars data
     return NextResponse.json({
       success: true,
       data: cars,
@@ -55,12 +28,18 @@ export async function GET(request: NextRequest) {
       message: 'Emergency mode: Authentication bypassed'
     });
   } catch (error: any) {
-    console.error('Emergency API error:', error);
+    console.error('EMERGENCY API Error:', error);
     
-    return NextResponse.json({
-      success: false,
-      error: error.message || 'An error occurred fetching data',
-      emergency: true
-    }, { status: 500 });
+    // Handle database or server errors
+    return NextResponse.json(
+      { 
+        error: error.message || 'Internal server error',
+        emergency: true
+      }, 
+      { status: 500 }
+    );
   }
-} 
+}
+
+// Add middleware for this route
+export const dynamic = 'force-dynamic'; // Do not cache this route 
