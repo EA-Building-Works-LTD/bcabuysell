@@ -7,10 +7,9 @@ import mongoose from 'mongoose';
  * Get all cars with optional status filter
  * 
  * @param status Optional status filter
- * @param userId Optional user ID to filter by owner
  * @returns Array of car objects
  */
-export async function getAllCars(status?: string, userId?: string) {
+export async function getAllCars(status?: string) {
   try {
     // Connect to the database
     await connectDB();
@@ -23,12 +22,7 @@ export async function getAllCars(status?: string, userId?: string) {
       query.status = status;
     }
     
-    // Add user filter if provided
-    if (userId && userId !== 'emergency-user') {
-      query.userId = userId;
-    }
-    
-    // Get cars matching the query
+    // Get cars matching the query - no user filtering
     const cars = await Car.find(query).sort({ createdAt: -1 });
     return cars;
   } catch (error) {

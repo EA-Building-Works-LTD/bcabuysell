@@ -10,11 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertCircle } from 'lucide-react';
 import CarCard from './CarCard';
-import { useAuth } from '@/contexts/AuthContext';
-import { fetchJson, authFetch } from '@/lib/fetch-utils';
 
 export default function CarList() {
-  const { user, getAuthToken } = useAuth();
   const [cars, setCars] = useState<ICar[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,67 +21,32 @@ export default function CarList() {
 
   useEffect(() => {
     const fetchCars = async () => {
-      if (!user) return; // Don't fetch if user is not authenticated
-      
       setLoading(true);
       setError(null);
       
       try {
-        // Get a fresh auth token before making the request
-        await getAuthToken(true); // Force token refresh
-        
         const status = filter !== 'all' ? filter : '';
-        let apiUrl = `/api/cars${status ? `?status=${status}` : ''}`;
-        let response;
+        const apiUrl = `/api/cars${status ? `?status=${status}` : ''}`;
         
-        // First try the emergency endpoint to ensure we can get data
-        try {
-          console.log('Trying emergency endpoint first as backup');
-          const emergencyUrl = `/api/cars/emergency${status ? `?status=${status}` : ''}`;
-          const emergencyResponse = await fetch(emergencyUrl);
+        // Simply fetch from the API without authentication
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+          let errorMessage = `Error ${response.status}: ${response.statusText}`;
           
-          if (emergencyResponse.ok) {
-            const emergencyData = await emergencyResponse.json();
-            setCars(emergencyData.data);
-            console.log('Successfully loaded data from emergency endpoint');
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (e) {
+            // If response isn't JSON, use the status text
           }
-        } catch (emergencyError) {
-          console.warn('Emergency endpoint failed, will still try regular endpoint', emergencyError);
+          
+          throw new Error(errorMessage);
         }
         
-        // Then try the regular API endpoint
-        try {
-          // Try the regular API endpoint with auth header
-          response = await authFetch(apiUrl);
-          
-          // Check for errors
-          if (!response.ok) {
-            let errorMessage = `Error ${response.status}: ${response.statusText}`;
-            
-            try {
-              const errorData = await response.json();
-              errorMessage = errorData.error || errorMessage;
-            } catch (e) {
-              // If response isn't JSON, use the status text
-            }
-            
-            throw new Error(errorMessage);
-          }
-          
-          const data = await response.json();
-          setCars(data.data);
-          setError(null); // Clear any previous errors
-        } catch (apiError) {
-          console.error('Regular API error:', apiError);
-          
-          // If we already have data from the emergency endpoint, we're good
-          if (cars.length > 0) {
-            setError('Using emergency data: Authentication issue detected');
-          } else {
-            // We couldn't get data from either endpoint
-            setError('Failed to load data from both regular and emergency endpoints');
-          }
-        }
+        const data = await response.json();
+        setCars(data.data);
+        setError(null);
       } catch (error: any) {
         console.error('Error fetching cars:', error);
         setError(error.message || 'Error loading cars. Please try again later.');
@@ -94,11 +56,11 @@ export default function CarList() {
     };
     
     fetchCars();
-  }, [filter, user, getAuthToken]);
+  }, [filter]);
 
   const handleDeleteCar = async (id: string) => {
     try {
-      const response = await authFetch(`/api/cars/${id}`, {
+      const response = await fetch(`/api/cars/${id}`, {
         method: 'DELETE',
       });
       
@@ -152,15 +114,8 @@ export default function CarList() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* App-like header with improved contrast */}
-      <div className="sticky top-0 z-10 bg-secondary dark:bg-gray-800 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-secondary-foreground dark:text-white">Cars</h1>
-        </div>
-      </div>
-
       {/* Tab navigation - app style with improved contrast */}
-      <div className="px-2">
+      <div className="px-2 pt-4">
         <Tabs defaultValue="all" value={filter} onValueChange={setFilter} className="w-full">
           <TabsList className="grid grid-cols-4 mt-2 mb-2 bg-secondary/80 dark:bg-gray-800 p-1 rounded-full h-auto">
             <TabsTrigger 

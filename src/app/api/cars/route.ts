@@ -1,29 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateApiAuth } from '@/lib/auth-utils';
 import { getAllCars, createCar } from '@/lib/car-service';
 import connectDB from '@/lib/database';
+
+// Default user ID for all operations since we've removed authentication
+const DEFAULT_USER_ID = 'default-user';
 
 // GET /api/cars - Get all cars with optional status filter
 export async function GET(req: NextRequest) {
   console.log('API /cars: Request received');
   
   try {
-    // Validate authentication
-    const authResult = await validateApiAuth(req);
-    
-    if (!authResult.isAuthorized) {
-      console.error('API /cars: Unauthorized request');
-      return authResult.response;
-    }
-    
     // Extract query parameters
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status') || '';
     
     console.log(`API /cars: Fetching cars with status filter: ${status || 'all'}`);
     
-    // Get cars data
-    const cars = await getAllCars(status, authResult.userId);
+    // Get all cars without user filtering
+    const cars = await getAllCars(status);
     
     console.log(`API /cars: Returning ${cars.length} cars`);
     
@@ -51,18 +45,11 @@ export async function GET(req: NextRequest) {
 // POST /api/cars - Create a new car
 export async function POST(req: NextRequest) {
   try {
-    // Validate authentication
-    const authResult = await validateApiAuth(req);
-    
-    if (!authResult.isAuthorized) {
-      return authResult.response;
-    }
-    
     // Parse request body
     const carData = await req.json();
     
-    // Create car using the service
-    const car = await createCar(carData, authResult.userId as string);
+    // Create car using the default user
+    const car = await createCar(carData, DEFAULT_USER_ID);
     
     return NextResponse.json({ 
       success: true,

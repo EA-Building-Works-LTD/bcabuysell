@@ -30,7 +30,7 @@ export interface ICar extends Document {
   soldDate?: Date;
   status: 'purchased' | 'listed' | 'sold';
   imageUrl?: string;
-  userId: mongoose.Schema.Types.ObjectId;
+  userId?: mongoose.Schema.Types.ObjectId | string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,8 +72,8 @@ const CarSchema = new Schema<ICar>(
     },
     userId: { 
       type: mongoose.Schema.Types.ObjectId, 
-      ref: 'User', 
-      required: true 
+      ref: 'User',
+      default: 'default-user' // Default user ID instead of requiring it
     }
   },
   { timestamps: true }

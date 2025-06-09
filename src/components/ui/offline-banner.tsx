@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { WifiOff } from 'lucide-react';
-import { isOnline } from '@/lib/firebase';
-
 export function OfflineBanner() {
   const [offline, setOffline] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     // Check initial status
-    setOffline(!isOnline());
+    setOffline(!navigator.onLine);
 
     // Event handlers
     const handleOnline = () => {

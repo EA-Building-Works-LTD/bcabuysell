@@ -136,43 +136,23 @@ export async function getAuthUser(request: NextRequest) {
   }
 }
 
-/**
- * Helper to protect API routes with Firebase authentication
- */
-export function withAuth(handler: (req: NextRequest, user: any) => Promise<NextResponse>) {
-  return async (request: NextRequest) => {
-    try {
-    const user = await getAuthUser(request);
+// Mock authentication for all API routes since we've removed Firebase auth
+export async function withoutAuth(handler: Function) {
+  return async (req: NextRequest, ...args: any[]) => {
+    // Simply pass through all requests with a mock user
+    const mockUser = {
+      _id: 'default-user',
+      email: 'guest@example.com',
+      role: 'admin', // Give admin access to everyone
+      name: 'Guest User'
+    };
     
-    if (!user) {
-        console.log('Auth middleware: Unauthorized request');
-        // Add response headers for debugging
-        const headers = new Headers();
-        headers.set('X-Auth-Error', 'No authenticated user found');
-        headers.set('X-Auth-Debug', 'Token verification failed or not provided');
-        
-        return NextResponse.json({ 
-          error: 'Unauthorized',
-          message: 'Authentication required. Please sign in.'
-        }, { 
-          status: 401,
-          headers
-        });
-    }
-    
-    return handler(request, user);
-    } catch (error) {
-      console.error('Error in auth middleware:', error);
-      
-      return NextResponse.json({ 
-        error: 'Authentication error',
-        message: 'An error occurred during authentication. Please try again.'
-      }, { 
-        status: 500 
-      });
-    }
+    return handler(req, mockUser, ...args);
   };
 }
+
+// Use this for any API route that previously required authentication
+export const withAuth = withoutAuth;
 
 /**
  * Helper to protect API routes with admin-only access
@@ -216,14 +196,7 @@ export function withAdminAuth(handler: (req: NextRequest, user: any) => Promise<
   };
 }
 
-// Check if the current route is an emergency route that bypasses auth
+// Check if the current route is an emergency route (keeping for compatibility)
 export function isEmergencyRoute(pathname: string): boolean {
-  const emergencyRoutes = [
-    '/api/cars/emergency',
-    '/api/auth/token-fix',
-    '/api/diagnose',
-    '/api/auth/debug-token',
-  ];
-  
-  return emergencyRoutes.some(route => pathname === route || pathname.startsWith(route));
+  return false; // No need for emergency routes anymore since all routes are public
 } 
