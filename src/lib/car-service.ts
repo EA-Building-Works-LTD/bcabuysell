@@ -3,12 +3,13 @@ import Car from '@/models/Car';
 import mongoose from 'mongoose';
 
 /**
- * Get all cars with optional status filter
+ * Get all cars with optional status and owner filters
  * 
  * @param status Optional status filter
+ * @param owner Optional owner filter
  * @returns Array of car objects
  */
-export async function getAllCars(status?: string) {
+export async function getAllCars(status?: string, owner?: string) {
   try {
     // Connect to the database
     await connectDB();
@@ -19,6 +20,11 @@ export async function getAllCars(status?: string) {
     // Add status filter if provided
     if (status) {
       query.status = status;
+    }
+    
+    // Add owner filter if provided
+    if (owner) {
+      query.owner = owner;
     }
     
     // Get cars matching the query - no user filtering

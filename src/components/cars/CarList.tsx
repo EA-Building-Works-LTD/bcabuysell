@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertCircle } from 'lucide-react';
+import { FIXED_USERS, USER_COLORS, FixedUser } from '@/types/users';
 import CarCard from './CarCard';
 
 export default function CarList() {
@@ -25,8 +26,8 @@ export default function CarList() {
       setError(null);
       
       try {
-        const status = filter !== 'all' ? filter : '';
-        const apiUrl = `/api/cars${status ? `?status=${status}` : ''}`;
+        const owner = filter !== 'all' ? filter : '';
+        const apiUrl = `/api/cars${owner ? `?owner=${owner}` : ''}`;
         
         // Simply fetch from the API without authentication
         const response = await fetch(apiUrl);
@@ -90,70 +91,57 @@ export default function CarList() {
     ));
   };
 
-  // Count cars by status
-  const statusCounts = {
+  // Count cars by owner
+  const ownerCounts: Record<string, number> = {
     all: cars.length,
-    purchased: cars.filter(car => car.status === 'purchased').length,
-    listed: cars.filter(car => car.status === 'listed').length,
-    sold: cars.filter(car => car.status === 'sold').length
+    ...FIXED_USERS.reduce((acc, owner) => {
+      acc[owner] = cars.filter(car => car.owner === owner).length;
+      return acc;
+    }, {} as Record<string, number>)
   };
 
-  // Get active tab color
+  // Get active tab color based on owner
   const getActiveTabColor = (value: string): string => {
-    switch(value) {
-      case 'purchased':
-        return 'data-[state=active]:bg-blue-600 data-[state=active]:text-white';
-      case 'listed':
-        return 'data-[state=active]:bg-amber-600 data-[state=active]:text-white';
-      case 'sold':
-        return 'data-[state=active]:bg-green-600 data-[state=active]:text-white';
-      default:
-        return 'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground';
+    if (value === 'all') {
+      return 'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground';
     }
+    
+    const userColor = USER_COLORS[value as FixedUser];
+    if (userColor) {
+      // Convert bg-color-500 to data-[state=active]:bg-color-500
+      return `data-[state=active]:${userColor} data-[state=active]:text-white`;
+    }
+    
+    return 'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground';
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Tab navigation - app style with improved contrast */}
+      {/* Tab navigation - owner-based filtering */}
       <div className="px-2 pt-4">
         <Tabs defaultValue="all" value={filter} onValueChange={setFilter} className="w-full">
-          <TabsList className="grid grid-cols-4 mt-2 mb-2 bg-secondary/80 dark:bg-gray-800 p-1 rounded-full h-auto">
+          <TabsList className="grid grid-cols-6 mt-2 mb-2 bg-secondary/80 dark:bg-gray-800 p-1 rounded-full h-auto">
             <TabsTrigger 
               value="all" 
               className={`rounded-full text-secondary-foreground dark:text-gray-300 shadow-sm text-sm py-1 h-auto ${getActiveTabColor('all')}`}
             >
               All
               <span className="ml-1 text-xs text-gray-600 dark:text-gray-400 data-[state=active]:text-white dark:data-[state=active]:text-white/90">
-                {statusCounts.all}
+                {ownerCounts.all}
               </span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="purchased" 
-              className={`rounded-full text-secondary-foreground dark:text-gray-300 shadow-sm text-sm py-1 h-auto ${getActiveTabColor('purchased')}`}
-            >
-              New
-              <span className="ml-1 text-xs text-gray-600 dark:text-gray-400 data-[state=active]:text-white dark:data-[state=active]:text-white/90">
-                {statusCounts.purchased}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="listed" 
-              className={`rounded-full text-secondary-foreground dark:text-gray-300 shadow-sm text-sm py-1 h-auto ${getActiveTabColor('listed')}`}
-            >
-              Listed
-              <span className="ml-1 text-xs text-gray-600 dark:text-gray-400 data-[state=active]:text-white dark:data-[state=active]:text-white/90">
-                {statusCounts.listed}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="sold" 
-              className={`rounded-full text-secondary-foreground dark:text-gray-300 shadow-sm text-sm py-1 h-auto ${getActiveTabColor('sold')}`}
-            >
-              Sold
-              <span className="ml-1 text-xs text-gray-600 dark:text-gray-400 data-[state=active]:text-white dark:data-[state=active]:text-white/90">
-                {statusCounts.sold}
-              </span>
-            </TabsTrigger>
+            {FIXED_USERS.map((owner) => (
+              <TabsTrigger 
+                key={owner}
+                value={owner} 
+                className={`rounded-full text-secondary-foreground dark:text-gray-300 shadow-sm text-sm py-1 h-auto ${getActiveTabColor(owner)}`}
+              >
+                {owner}
+                <span className="ml-1 text-xs text-gray-600 dark:text-gray-400 data-[state=active]:text-white dark:data-[state=active]:text-white/90">
+                  {ownerCounts[owner] || 0}
+                </span>
+              </TabsTrigger>
+            ))}
           </TabsList>
 
           <TabsContent value={filter} className="mt-0 space-y-0 pb-1">
@@ -204,7 +192,7 @@ export default function CarList() {
                 </div>
                 <h3 className="text-lg font-medium mb-1 text-foreground">No cars found</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm mb-3">
-                  No cars match the current filter
+                  {filter === 'all' ? 'No cars available' : `No cars found for ${filter}`}
                 </p>
                 <Link href="/cars/new">
                   <Button>Add your first car</Button>

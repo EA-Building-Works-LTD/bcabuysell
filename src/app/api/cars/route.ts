@@ -5,7 +5,7 @@ import connectDB from '@/lib/database';
 // Default user ID for all operations since we've removed authentication
 const DEFAULT_USER_ID = 'default-user';
 
-// GET /api/cars - Get all cars with optional status filter
+// GET /api/cars - Get all cars with optional status and owner filters
 export async function GET(req: NextRequest) {
   console.log('API /cars: Request received');
   
@@ -13,11 +13,12 @@ export async function GET(req: NextRequest) {
     // Extract query parameters
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status') || '';
+    const owner = searchParams.get('owner') || '';
     
-    console.log(`API /cars: Fetching cars with status filter: ${status || 'all'}`);
+    console.log(`API /cars: Fetching cars with status filter: ${status || 'all'}, owner filter: ${owner || 'all'}`);
     
     // Get all cars without user filtering
-    const cars = await getAllCars(status);
+    const cars = await getAllCars(status, owner);
     
     console.log(`API /cars: Returning ${cars.length} cars`);
     
