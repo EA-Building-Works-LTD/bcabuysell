@@ -13,12 +13,13 @@ export async function POST(request: NextRequest) {
   console.log('Request method:', request.method);
   console.log('Content-Type header:', request.headers.get('content-type'));
   
-  // Temporarily disabled to test upload logic
-  // if (process.env.VERCEL) {
-  //   return NextResponse.json({ 
-  //     error: 'File uploads not supported in production. Please set up cloud storage like Cloudinary or Vercel Blob.' 
-  //   }, { status: 501 });
-  // }
+  // Check if we're in a production environment that doesn't support file uploads
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ 
+      error: 'File uploads not supported in production. Files cannot be stored on Vercel\'s read-only file system. Please set up cloud storage like Cloudinary, AWS S3, or Vercel Blob.',
+      suggestion: 'For now, you can add cars without images. Contact your developer to set up cloud storage.'
+    }, { status: 501 });
+  }
   
   try {
     console.log('Attempting to parse formData...');

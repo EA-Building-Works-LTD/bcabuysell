@@ -2,7 +2,7 @@
 
 import OwnerStatisticsOverview from '@/components/statistics/OwnerStatisticsOverview';
 
-export default function StatisticsPage() {
+export default function OwnerStatisticsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="text-center mb-8">

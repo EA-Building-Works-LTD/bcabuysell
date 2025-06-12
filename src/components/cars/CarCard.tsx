@@ -3,12 +3,13 @@
 import { ICar } from '@/models/Car';
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { CalendarIcon, MapPinIcon, MoreVertical, Heart, Tag, EyeIcon, EditIcon, TrashIcon, ChevronDownIcon, TrendingUpIcon, BanknoteIcon, PoundSterlingIcon, MoreHorizontal } from 'lucide-react';
+import { CalendarIcon, MapPinIcon, MoreVertical, Heart, Tag, EyeIcon, EditIcon, TrashIcon, ChevronDownIcon, TrendingUpIcon, BanknoteIcon, PoundSterlingIcon, MoreHorizontal, UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import CarDetailModal from './CarDetailModal';
 import CarEditModal from './CarEditModal';
 import Image from 'next/image';
+import { USER_COLORS } from '@/types/users';
 
 interface CarCardProps {
   car: ICar;
@@ -110,50 +111,19 @@ export default function CarCard({ car, onDelete, onUpdate }: CarCardProps) {
         {/* Status indicator */}
         <div className={`absolute top-0 right-0 w-3 h-3 m-1.5 rounded-full ${getStatusColor(car.status)}`} />
         
-        {/* Car image */}
+        {/* Header section - replacing image section */}
         <div 
-          className="bg-gradient-to-r from-sky-100 to-indigo-100 dark:from-sky-950/40 dark:to-indigo-950/40 h-36 flex items-center justify-center relative"
+          className="bg-gradient-to-r from-sky-100 to-indigo-100 dark:from-sky-950/40 dark:to-indigo-950/40 h-24 flex items-center justify-center relative"
           onClick={openDetailModal}
         >
-          {car.imageUrl ? (
-            <div className="absolute inset-0">
-              <Image 
-                src={car.imageUrl} 
-                alt={car.makeModel}
-                fill
-                style={{ objectFit: 'cover' }}
-                className="w-full h-full"
-                sizes="(max-width: 768px) 100vw, 33vw"
-                unoptimized={true}
-              />
-            </div>
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-16 w-16 text-gray-400/60 dark:text-gray-500/60" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={1.5} 
-                  d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" 
-                />
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={1.5} 
-                  d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" 
-                />
-              </svg>
-            </div>
-          )}
+          {/* Owner Badge - Top Left */}
+          <div className="absolute top-2 left-2 bg-black/80 text-white font-semibold px-3 py-1 rounded-md text-xs shadow-sm z-10 flex items-center min-w-[70px] whitespace-nowrap">
+            <UserIcon className="h-3 w-3 mr-1" />
+            <span className="ml-1 truncate">{car.owner || 'No Owner'}</span>
+          </div>
           
-          {/* Registration plate - capitalize plate number */}
-          <div className="absolute top-2 left-2 bg-yellow-300 text-black font-mono font-bold px-2 py-0.5 rounded-md text-xs shadow-sm z-10">
+          {/* Registration plate - Top Right */}
+          <div className="absolute top-2 right-2 bg-yellow-300 text-black font-mono font-bold px-2 py-0.5 rounded-md text-xs shadow-sm z-10">
             {car.regNumber ? car.regNumber.toUpperCase() : 'REG PLATE'}
           </div>
           
@@ -186,14 +156,14 @@ export default function CarCard({ car, onDelete, onUpdate }: CarCardProps) {
               </div>
             </div>
             
-            {/* Action menu - using horizontal ellipsis */}
+            {/* Action menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                  <MoreHorizontal className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+                <Button variant="ghost" className="h-8 w-8 p-0 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                  <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={openDetailModal}>
                   <EyeIcon className="h-4 w-4 mr-2" />
                   View Details
@@ -202,10 +172,7 @@ export default function CarCard({ car, onDelete, onUpdate }: CarCardProps) {
                   <EditIcon className="h-4 w-4 mr-2" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={handleDeleteClick} 
-                  className="text-red-600 dark:text-red-400"
-                >
+                <DropdownMenuItem onClick={handleDeleteClick} className="text-red-600 dark:text-red-400">
                   <TrashIcon className="h-4 w-4 mr-2" />
                   Delete
                 </DropdownMenuItem>
@@ -213,7 +180,7 @@ export default function CarCard({ car, onDelete, onUpdate }: CarCardProps) {
             </DropdownMenu>
           </div>
           
-          {/* Features */}
+          {/* Car details badges */}
           <div className="flex flex-wrap gap-1 my-1.5">
             {car.mileage && (
               <span className="text-xs px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 rounded-full border border-gray-200 dark:border-gray-600">

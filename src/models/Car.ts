@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { FixedUser } from '@/types/users';
 
 // Define a Repair interface
 export interface IRepair {
@@ -30,6 +31,7 @@ export interface ICar extends Document {
   soldDate?: Date;
   status: 'purchased' | 'listed' | 'sold';
   imageUrl?: string;
+  owner: FixedUser;
   userId?: mongoose.Schema.Types.ObjectId | string;
   createdAt: Date;
   updatedAt: Date;
@@ -65,13 +67,18 @@ const CarSchema = new Schema<ICar>(
     purchaseDate: { type: Date, required: true },
     soldDate: { type: Date },
     imageUrl: { type: String },
+    owner: { 
+      type: String, 
+      required: true,
+      enum: ['Ehsaan', 'Amar', 'Shamas', 'Kamar', 'Kas']
+    },
     status: { 
       type: String, 
       enum: ['purchased', 'listed', 'sold'], 
       default: 'purchased' 
     },
     userId: { 
-      type: String, // Changed to String since we're using 'default-user'
+      type: String,
       default: 'default-user'
     }
   },
@@ -99,6 +106,20 @@ CarSchema.pre('save', function(next) {
   
   next();
 });
+
+// Ensure the owner field exists even in hot-reloaded environments
+if (mongoose.models.Car) {
+  const existingSchema = (mongoose.models.Car as mongoose.Model<ICar>).schema;
+  if (!existingSchema.path('owner')) {
+    existingSchema.add({
+      owner: {
+        type: String,
+        required: true,
+        enum: ['Ehsaan', 'Amar', 'Shamas', 'Kamar', 'Kas']
+      }
+    });
+  }
+}
 
 // Create and export the model
 export default mongoose.models.Car || mongoose.model<ICar>('Car', CarSchema); 

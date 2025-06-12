@@ -10,6 +10,8 @@ import { useState, useEffect, useRef } from 'react';
 import { toast } from "sonner";
 import Image from 'next/image';
 import { authFetch } from '@/lib/fetch-utils';
+import { FIXED_USERS } from '@/types/users';
+import { Trash2, Plus } from 'lucide-react';
 
 interface CarEditModalProps {
   car: ICar;
@@ -40,6 +42,7 @@ interface CarFormData {
   soldDate?: Date | string;
   status: 'purchased' | 'listed' | 'sold';
   imageUrl?: string;
+  owner: string;
   repairs: Array<{
     type: string;
     cost: number;
@@ -71,6 +74,7 @@ export default function CarEditModal({ car, isOpen, onClose, onSave }: CarEditMo
       soldDate: car.soldDate,
       status: car.status,
       imageUrl: car.imageUrl,
+      owner: car.owner,
       repairs: car.repairs?.map(repair => ({
         type: repair.type,
         cost: repair.cost,
@@ -202,12 +206,20 @@ export default function CarEditModal({ car, isOpen, onClose, onSave }: CarEditMo
         if (!uploadResponse.ok) {
           const errorData = await uploadResponse.json();
           console.error('Upload error:', errorData);
-          throw new Error('Failed to upload image: ' + (errorData.error || 'Unknown error'));
+          
+          // Handle production file upload limitation gracefully
+          if (uploadResponse.status === 501) {
+            toast.error('Image uploads not available in production. Saving car without image...');
+            console.log('Proceeding without image upload due to production limitations');
+            imageUrl = ''; // Clear the image URL and proceed
+          } else {
+            throw new Error('Failed to upload image: ' + (errorData.error || 'Unknown error'));
+          }
+        } else {
+          const uploadData = await uploadResponse.json();
+          console.log('Upload successful, image URL:', uploadData.url);
+          imageUrl = uploadData.url;
         }
-        
-        const uploadData = await uploadResponse.json();
-        console.log('Upload successful, image URL:', uploadData.url);
-        imageUrl = uploadData.url;
       } else {
         console.log('No new image to upload, using existing URL:', imageUrl);
       }
@@ -309,6 +321,25 @@ export default function CarEditModal({ car, isOpen, onClose, onSave }: CarEditMo
             <h3 className="text-sm font-medium pb-1 border-b border-gray-200 dark:border-gray-700">Basic Information</h3>
             
             <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="owner">Owner</Label>
+                <Select 
+                  value={formData.owner} 
+                  onValueChange={(value: string) => handleSelectChange('owner', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select owner..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FIXED_USERS.map((user) => (
+                      <SelectItem key={user} value={user}>
+                        {user}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <div className="space-y-1">
                 <Label htmlFor="makeModel">Make & Model</Label>
                 <Input
@@ -513,6 +544,98 @@ export default function CarEditModal({ car, isOpen, onClose, onSave }: CarEditMo
                   <SelectItem value="sold">Sold</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+          
+          {/* Repairs Section */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium pb-1 border-b border-gray-200 dark:border-gray-700">Repairs</h3>
+            
+            <div className="space-y-3">
+              {formData.repairs.length > 0 ? (
+                formData.repairs.map((repair, index) => (
+                  <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Repair {index + 1}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                        onClick={() => {
+                          const updatedRepairs = formData.repairs.filter((_, i) => i !== index);
+                          setFormData({ ...formData, repairs: updatedRepairs });
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-1">
+                        <Label htmlFor={`repair-${index}-type`} className="text-xs">Type</Label>
+                        <Input
+                          id={`repair-${index}-type`}
+                          placeholder="e.g. Engine repair"
+                          value={repair.type}
+                          onChange={(e) => {
+                            const updatedRepairs = [...formData.repairs];
+                            updatedRepairs[index].type = e.target.value;
+                            setFormData({ ...formData, repairs: updatedRepairs });
+                          }}
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor={`repair-${index}-cost`} className="text-xs">Cost (£)</Label>
+                        <Input
+                          id={`repair-${index}-cost`}
+                          type="number"
+                          placeholder="0"
+                          value={repair.cost || ''}
+                          onChange={(e) => {
+                            const updatedRepairs = [...formData.repairs];
+                            updatedRepairs[index].cost = parseFloat(e.target.value) || 0;
+                            setFormData({ ...formData, repairs: updatedRepairs });
+                          }}
+                        />
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor={`repair-${index}-description`} className="text-xs">Description</Label>
+                        <Input
+                          id={`repair-${index}-description`}
+                          placeholder="Optional details"
+                          value={repair.description || ''}
+                          onChange={(e) => {
+                            const updatedRepairs = [...formData.repairs];
+                            updatedRepairs[index].description = e.target.value;
+                            setFormData({ ...formData, repairs: updatedRepairs });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No repairs added yet</p>
+              )}
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => {
+                  setFormData({ 
+                    ...formData, 
+                    repairs: [...formData.repairs, { type: '', cost: 0, description: '' }] 
+                  });
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Repair
+              </Button>
             </div>
           </div>
           

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ICar } from '@/models/Car';
 import Image from 'next/image';
+import { FIXED_USERS } from '@/types/users';
 
 interface RepairField {
   type: string;
@@ -50,6 +51,7 @@ export default function CarForm({ carData, isEdit = false, isInModal = false, on
     soldDate: '',
     imageUrl: '',
     status: 'purchased',
+    owner: 'Ehsaan', // Default owner
   });
 
   // If editing, load the car data
@@ -75,6 +77,7 @@ export default function CarForm({ carData, isEdit = false, isInModal = false, on
         soldDate: carData.soldDate ? new Date(carData.soldDate).toISOString().split('T')[0] : '',
         imageUrl: carData.imageUrl || '',
         status: carData.status || 'purchased',
+        owner: carData.owner || 'Ehsaan',
       });
       
       // Set image preview if there's an image URL
@@ -317,6 +320,27 @@ export default function CarForm({ carData, isEdit = false, isInModal = false, on
                 </div>
               )}
             </div>
+          </div>
+          
+          {/* Owner Selection */}
+          <div>
+            <label htmlFor="owner" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Owner <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="owner"
+              name="owner"
+              value={formData.owner}
+              onChange={handleChange}
+              required
+              className={inputClass}
+            >
+              {FIXED_USERS.map((user) => (
+                <option key={user} value={user}>
+                  {user}
+                </option>
+              ))}
+            </select>
           </div>
           
           {/* Make/Model */}

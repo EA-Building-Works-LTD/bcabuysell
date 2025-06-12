@@ -4,9 +4,10 @@ import React from 'react';
 import { ICar } from '@/models/Car';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon, MapPinIcon, CarIcon, TagIcon, InfoIcon, CheckCircleIcon, XCircleIcon, TrendingUpIcon, BanknoteIcon, GaugeCircleIcon, FileTextIcon, ClockIcon } from 'lucide-react';
+import { CalendarIcon, MapPinIcon, CarIcon, TagIcon, InfoIcon, CheckCircleIcon, XCircleIcon, TrendingUpIcon, BanknoteIcon, GaugeCircleIcon, FileTextIcon, ClockIcon, UserIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { USER_COLORS } from '@/types/users';
 
 // Helper functions
 const formatPrice = (price: number) => {
@@ -102,51 +103,9 @@ export default function CarDetailModal({ car, isOpen, onClose, onEdit }: CarDeta
           </DialogTitle>
         </DialogHeader>
         
-        {/* Image Section */}
-        <div className="relative w-full h-56 sm:h-72 mb-4 rounded-lg overflow-hidden">
-          {car.imageUrl ? (
-            <Image 
-              src={car.imageUrl} 
-              alt={car.makeModel}
-              fill
-              style={{ objectFit: 'cover' }}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              className="rounded-lg"
-              unoptimized={true}
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-r from-sky-100 to-indigo-100 dark:from-sky-950/40 dark:to-indigo-950/40 flex items-center justify-center">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-24 w-24 text-gray-400/60 dark:text-gray-500/60" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={1.5} 
-                  d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" 
-                />
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={1.5} 
-                  d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" 
-                />
-              </svg>
-            </div>
-          )}
-          
-          {/* Registration plate */}
-          {car.regNumber && (
-            <div className="absolute top-4 left-4 bg-yellow-300 text-black font-mono font-bold px-3 py-1 rounded-md text-sm shadow-sm">
-              {car.regNumber.toUpperCase()}
-            </div>
-          )}
-          
-          {/* Status indicator with improved contrast */}
+        {/* Header Section - replacing Image Section */}
+        <div className="relative w-full h-24 mb-4 rounded-lg overflow-hidden bg-gradient-to-r from-sky-100 to-indigo-100 dark:from-sky-950/40 dark:to-indigo-950/40">
+          {/* Status Badge */}
           <div className="absolute top-4 right-4 bg-white/90 dark:bg-gray-800/90 rounded-full px-3 py-1 text-sm font-medium flex items-center shadow-sm border border-gray-200 dark:border-gray-700">
             <span className={`w-2 h-2 rounded-full mr-2 ${
               car.status === 'purchased' ? 'bg-blue-600' : 
@@ -154,6 +113,19 @@ export default function CarDetailModal({ car, isOpen, onClose, onEdit }: CarDeta
             }`}></span>
             <span className="capitalize text-gray-900 dark:text-white">{car.status}</span>
           </div>
+          
+          {/* Owner Badge */}
+          <div className={`absolute top-4 left-4 ${USER_COLORS[car.owner]} text-white font-medium px-3 py-1 rounded-md text-sm shadow-sm flex items-center`}>
+            <UserIcon className="h-4 w-4 mr-1" />
+            {car.owner}
+          </div>
+          
+          {/* Registration Plate */}
+          {car.regNumber && (
+            <div className="absolute bottom-4 left-4 bg-yellow-300 text-black font-mono font-bold px-2 py-0.5 rounded-md text-xs shadow-sm">
+              {car.regNumber.toUpperCase()}
+            </div>
+          )}
         </div>
         
         {/* Car Details */}
