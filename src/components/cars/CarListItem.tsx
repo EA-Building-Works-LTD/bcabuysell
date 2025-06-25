@@ -79,7 +79,7 @@ export default function CarListItem({ car, onDelete }: CarListItemProps) {
           </Link>
           <Link
             href={`/cars/${car._id?.toString()}/edit`}
-            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                          className="text-primary hover:text-primary/80 dark:text-primary dark:hover:text-primary/80"
           >
             Edit
           </Link>

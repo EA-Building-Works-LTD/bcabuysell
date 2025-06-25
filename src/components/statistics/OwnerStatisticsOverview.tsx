@@ -64,8 +64,8 @@ export default function OwnerStatisticsOverview() {
               <span
                 className={`h-3 w-3 rounded-full inline-block ${USER_COLORS[owner]}`}
               ></span>
-              <h2 className="text-xl font-bold">{owner}</h2>
-              <span className="text-sm text-gray-500 dark:text-gray-400">{ownerCars.length} cars</span>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{owner}</h2>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{ownerCars.length} cars</span>
             </div>
             {ownerCars.length > 0 ? (
               <StatsSummaryCards cars={ownerCars} />

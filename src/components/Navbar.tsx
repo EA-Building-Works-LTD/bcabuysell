@@ -17,7 +17,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-sm">
+    <nav className="bg-card border-b shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
@@ -25,10 +25,10 @@ export default function Navbar() {
               href="/" 
               className="flex-shrink-0 flex items-center"
             >
-              <div className="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center">
-                <span className="text-white font-bold">B</span>
-              </div>
-              <span className="ml-2 text-xl font-bold text-gray-800 dark:text-white">BCA Buy Sell</span>
+                          <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+              <span className="text-primary-foreground font-bold">B</span>
+            </div>
+            <span className="ml-2 text-xl font-bold text-foreground">BCA Buy Sell</span>
             </Link>
           </div>
           
@@ -36,40 +36,40 @@ export default function Navbar() {
           <div className="hidden md:flex md:items-center md:space-x-4">
             <Link 
               href="/" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 isActive('/') 
-                  ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' 
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'text-primary bg-primary/10' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
             >
               Home
             </Link>
             <Link 
               href="/cars" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 isActive('/cars') 
-                  ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' 
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'text-primary bg-primary/10' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
             >
               Cars
             </Link>
             <Link 
               href="/statistics" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 isActive('/statistics') 
-                  ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' 
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'text-primary bg-primary/10' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
             >
               Statistics
             </Link>
             <Link 
               href="/dashboard" 
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 isActive('/dashboard') 
-                  ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' 
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'text-primary bg-primary/10' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
             >
               Dashboard
@@ -85,7 +85,7 @@ export default function Navbar() {
           <div className="flex md:hidden">
             <button
               type="button"
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+              className="inline-flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
               aria-controls="mobile-menu"
               aria-expanded={isMenuOpen}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -111,10 +111,10 @@ export default function Navbar() {
           <div className="px-2 pt-2 pb-3 space-y-1">
             <Link 
               href="/" 
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
                 isActive('/') 
-                  ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' 
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'text-primary bg-primary/10' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
               onClick={() => setIsMenuOpen(false)}
             >
@@ -122,10 +122,10 @@ export default function Navbar() {
             </Link>
             <Link 
               href="/cars" 
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
                 isActive('/cars') 
-                  ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' 
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'text-primary bg-primary/10' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
               onClick={() => setIsMenuOpen(false)}
             >
@@ -133,10 +133,10 @@ export default function Navbar() {
             </Link>
             <Link 
               href="/statistics" 
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
                 isActive('/statistics') 
-                  ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' 
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'text-primary bg-primary/10' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
               onClick={() => setIsMenuOpen(false)}
             >
@@ -144,10 +144,10 @@ export default function Navbar() {
             </Link>
             <Link 
               href="/dashboard" 
-              className={`block px-3 py-2 rounded-md text-base font-medium ${
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
                 isActive('/dashboard') 
-                  ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20' 
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'text-primary bg-primary/10' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent'
               }`}
               onClick={() => setIsMenuOpen(false)}
             >

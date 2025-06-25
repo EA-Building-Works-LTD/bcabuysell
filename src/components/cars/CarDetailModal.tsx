@@ -104,7 +104,7 @@ export default function CarDetailModal({ car, isOpen, onClose, onEdit }: CarDeta
         </DialogHeader>
         
         {/* Header Section - replacing Image Section */}
-        <div className="relative w-full h-24 mb-4 rounded-lg overflow-hidden bg-gradient-to-r from-sky-100 to-indigo-100 dark:from-sky-950/40 dark:to-indigo-950/40">
+                    <div className="relative w-full h-24 mb-4 rounded-lg overflow-hidden bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700">
           {/* Status Badge */}
           <div className="absolute top-4 right-4 bg-white/90 dark:bg-gray-800/90 rounded-full px-3 py-1 text-sm font-medium flex items-center shadow-sm border border-gray-200 dark:border-gray-700">
             <span className={`w-2 h-2 rounded-full mr-2 ${

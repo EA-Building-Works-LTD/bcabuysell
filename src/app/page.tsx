@@ -12,7 +12,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="py-16 px-4 sm:py-24 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
+        <section className="py-16 px-4 sm:py-24 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
           <div className="max-w-7xl mx-auto text-center">
             <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl text-blue-900 dark:text-blue-100">
               BCA Buy &amp; Sell

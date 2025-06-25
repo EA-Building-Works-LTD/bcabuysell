@@ -117,14 +117,14 @@ export default function StatsSummaryCards({ cars }: StatsSummaryCardsProps) {
       </Card>
       
       {/* Conversion Rate Card */}
-      <Card className="p-4 border-l-4 border-indigo-500">
+      <Card className="p-4 border-l-4 border-primary">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm text-gray-500 dark:text-gray-400">Conversion Rate</p>
             <p className="text-2xl font-bold mt-1">{conversionRate}%</p>
           </div>
-          <div className="bg-indigo-100 dark:bg-indigo-900/20 p-3 rounded-full">
-            <CheckCircle className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  <div className="bg-primary/10 dark:bg-primary/20 p-3 rounded-full">
+          <CheckCircle className="h-5 w-5 text-primary dark:text-primary" />
           </div>
         </div>
         <div className="flex items-center mt-4">
